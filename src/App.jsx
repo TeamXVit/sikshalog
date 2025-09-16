@@ -1,18 +1,39 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import EnrollFace from "./EnrollFace";
-import DetectFace from "./DetectFace";
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
+import Students from './components/Students';
+import StudentProfile from './components/StudentProfile';
+import Attendance from './components/Attendance';
+import AttendanceHistory from './components/AttendanceHistory';
+import Reports from './components/Reports';
+// import Teachers from './components/Teachers';
+// import RegisterStudent from "./RegisterStudent";
+// import TakeAttendance from "./TakeAttendance";
+import Layout from './components/Layout';
 
 function App() {
   return (
-    <BrowserRouter>
-      <nav>
-        <Link to="/enroll">Enroll</Link> | <Link to="/detect">Detect</Link>
-      </nav>
+    <Router>
       <Routes>
-        <Route path="/enroll" element={<EnrollFace />} />
-        <Route path="/detect" element={<DetectFace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/*" element={
+          <Layout>
+            <Routes>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/students" element={<Students />} />
+              <Route path="/students/:id" element={<StudentProfile />} />
+              <Route path="/attendance" element={<Attendance />} />
+              <Route path="/attendance/history" element={<AttendanceHistory />} />
+              <Route path="/reports" element={<Reports />} />
+              {/* <Route path="/teachers" element={<Teachers />} />
+              <Route path="/register" element={<RegisterStudent />} />
+              <Route path="/take-attendance" element={<TakeAttendance />} /> */}
+            </Routes>
+          </Layout>
+        } />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 

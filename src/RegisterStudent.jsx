@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "face-api.js";
 
-export default function EnrollFace() {
+export default function RegisterStudent() {
   const videoRef = useRef(null);
   const [status, setStatus] = useState("Initializing...");
   const [name, setName] = useState("");
