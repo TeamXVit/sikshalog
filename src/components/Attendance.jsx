@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { 
   Camera, 
   Users, 
@@ -11,13 +10,26 @@ import {
   History,
   UserCheck,
   AlertCircle,
-  Calendar
+  Calendar,
+  Plus,
+  Edit3,
+  Trash2,
+  Save,
+  X
 } from 'lucide-react';
 
 const Attendance = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [currentSession, setCurrentSession] = useState('morning');
   const [recognizedStudents, setRecognizedStudents] = useState([]);
+  const [showAddSession, setShowAddSession] = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
+  const [newSession, setNewSession] = useState({ name: '', timeStart: '', timeEnd: '' });
+  const [sessions, setSessions] = useState([
+    { id: 'morning', name: 'Morning', time: '09:00 - 10:00', isCustom: false },
+    { id: 'afternoon', name: 'Afternoon', time: '13:00 - 14:00', isCustom: false },
+    { id: 'evening', name: 'Evening', time: '16:00 - 17:00', isCustom: false }
+  ]);
   const [stats, setStats] = useState({
     totalStudents: 247,
     present: 0,
@@ -25,12 +37,6 @@ const Attendance = () => {
     unrecognized: 0
   });
   const videoRef = useRef(null);
-
-  const sessions = [
-    { id: 'morning', name: 'Morning', time: '09:00 - 10:00' },
-    { id: 'afternoon', name: 'Afternoon', time: '13:00 - 14:00' },
-    { id: 'evening', name: 'Evening', time: '16:00 - 17:00' }
-  ];
 
   // Mock recognized students data
   const mockStudents = [
@@ -121,6 +127,150 @@ const Attendance = () => {
     return 'text-red-600 bg-red-100';
   };
 
+  // Remove recognized student from attendance
+  const removeRecognizedStudent = (studentId) => {
+    if (window.confirm('Are you sure you want to remove this student from attendance?')) {
+      const updatedStudents = recognizedStudents.filter(student => student.id !== studentId);
+      setRecognizedStudents(updatedStudents);
+      setStats(prev => ({
+        ...prev,
+        present: updatedStudents.length,
+        absent: prev.totalStudents - updatedStudents.length
+      }));
+    }
+  };
+
+  // Clear all recognized students
+  const clearAllRecognizedStudents = () => {
+    if (window.confirm('Are you sure you want to clear all recognized students?')) {
+      setRecognizedStudents([]);
+      setStats(prev => ({
+        ...prev,
+        present: 0,
+        absent: prev.totalStudents
+      }));
+    }
+  };
+
+  // Session management functions
+  const handleAddSession = () => {
+    if (newSession.name && newSession.timeStart && newSession.timeEnd) {
+      const sessionId = `custom_${Date.now()}`;
+      const timeRange = `${newSession.timeStart} - ${newSession.timeEnd}`;
+      
+      setSessions(prev => [...prev, {
+        id: sessionId,
+        name: newSession.name,
+        time: timeRange,
+        isCustom: true
+      }]);
+      
+      setNewSession({ name: '', timeStart: '', timeEnd: '' });
+      setShowAddSession(false);
+    }
+  };
+
+  const handleEditSession = (sessionId) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      const [timeStart, timeEnd] = session.time.split(' - ');
+      setNewSession({ 
+        name: session.name, 
+        timeStart: timeStart, 
+        timeEnd: timeEnd 
+      });
+      setEditingSession(sessionId);
+      setShowAddSession(true);
+    }
+  };
+
+  const handleUpdateSession = () => {
+    if (newSession.name && newSession.timeStart && newSession.timeEnd) {
+      const timeRange = `${newSession.timeStart} - ${newSession.timeEnd}`;
+      
+      setSessions(prev => prev.map(session => 
+        session.id === editingSession 
+          ? { ...session, name: newSession.name, time: timeRange }
+          : session
+      ));
+      
+      setNewSession({ name: '', timeStart: '', timeEnd: '' });
+      setShowAddSession(false);
+      setEditingSession(null);
+    }
+  };
+
+  // ENHANCED: Remove session slot with better confirmation and fallback logic
+  const handleRemoveSession = (sessionId) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    // Enhanced confirmation message
+    const confirmMessage = session.isCustom 
+      ? `Are you sure you want to delete the custom session "${session.name}" (${session.time})?`
+      : `Are you sure you want to remove the "${session.name}" session slot? This will permanently delete this time slot.`;
+
+    if (window.confirm(confirmMessage)) {
+      // Filter out the session to remove
+      const updatedSessions = sessions.filter(s => s.id !== sessionId);
+      setSessions(updatedSessions);
+
+      // Handle current session fallback if the removed session was active
+      if (currentSession === sessionId) {
+        // Set to the first available session, or morning if no sessions left
+        const fallbackSession = updatedSessions.length > 0 ? updatedSessions[0].id : 'morning';
+        setCurrentSession(fallbackSession);
+        
+        // If no sessions left, add a default morning session
+        if (updatedSessions.length === 0) {
+          setSessions([{ id: 'morning', name: 'Morning', time: '09:00 - 10:00', isCustom: false }]);
+        }
+      }
+
+      // Clear recognized students when session is removed
+      setRecognizedStudents([]);
+      setStats(prev => ({
+        ...prev,
+        present: 0,
+        absent: prev.totalStudents
+      }));
+    }
+  };
+
+  // NEW: Remove all custom sessions
+  const handleRemoveAllCustomSessions = () => {
+    const customSessions = sessions.filter(s => s.isCustom);
+    if (customSessions.length === 0) {
+      alert('No custom sessions to remove.');
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to remove all ${customSessions.length} custom session(s)? This action cannot be undone.`)) {
+      const defaultSessions = sessions.filter(s => !s.isCustom);
+      setSessions(defaultSessions);
+      
+      // Reset to morning if current session was custom
+      const currentSessionWasCustom = sessions.find(s => s.id === currentSession)?.isCustom;
+      if (currentSessionWasCustom) {
+        setCurrentSession('morning');
+      }
+      
+      // Clear recognized students
+      setRecognizedStudents([]);
+      setStats(prev => ({
+        ...prev,
+        present: 0,
+        absent: prev.totalStudents
+      }));
+    }
+  };
+
+  const cancelSessionEdit = () => {
+    setNewSession({ name: '', timeStart: '', timeEnd: '' });
+    setShowAddSession(false);
+    setEditingSession(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -142,25 +292,143 @@ const Attendance = () => {
 
       {/* Session Selection */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Session</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {sessions.map((session) => (
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Manage Session Slots</h3>
+          <div className="flex flex-wrap gap-2">
             <button
+              onClick={() => setShowAddSession(true)}
+              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Session</span>
+            </button>
+            {/* NEW: Remove all custom sessions button */}
+            {sessions.some(s => s.isCustom) && (
+              <button
+                onClick={handleRemoveAllCustomSessions}
+                className="flex items-center space-x-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg transition duration-200"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Remove All Custom</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Add/Edit Session Form */}
+        {showAddSession && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+            <h4 className="font-medium text-gray-900 mb-3">
+              {editingSession ? 'Edit Session Slot' : 'Add New Session Slot'}
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input
+                type="text"
+                placeholder="Session name (e.g., Lunch Break)"
+                value={newSession.name}
+                onChange={(e) => setNewSession(prev => ({ ...prev, name: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <input
+                type="time"
+                placeholder="Start time"
+                value={newSession.timeStart}
+                onChange={(e) => setNewSession(prev => ({ ...prev, timeStart: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <input
+                type="time"
+                placeholder="End time"
+                value={newSession.timeEnd}
+                onChange={(e) => setNewSession(prev => ({ ...prev, timeEnd: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center space-x-2 mt-3">
+              <button
+                onClick={editingSession ? handleUpdateSession : handleAddSession}
+                className="flex items-center space-x-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition duration-200"
+              >
+                <Save className="h-4 w-4" />
+                <span>{editingSession ? 'Update Slot' : 'Save Slot'}</span>
+              </button>
+              <button
+                onClick={cancelSessionEdit}
+                className="flex items-center space-x-1 bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition duration-200"
+              >
+                <X className="h-4 w-4" />
+                <span>Cancel</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sessions Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sessions.map((session) => (
+            <div
               key={session.id}
-              onClick={() => setCurrentSession(session.id)}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+              className={`relative p-4 rounded-lg border-2 transition-all duration-200 ${
                 currentSession === session.id
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="text-center">
-                <h4 className="font-semibold">{session.name}</h4>
-                <p className="text-sm mt-1">{session.time}</p>
-              </div>
-            </button>
+              <button
+                onClick={() => setCurrentSession(session.id)}
+                className="w-full text-left"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className={`font-semibold ${
+                      currentSession === session.id ? 'text-blue-700' : 'text-gray-700'
+                    }`}>
+                      {session.name}
+                    </h4>
+                    <p className={`text-sm mt-1 ${
+                      currentSession === session.id ? 'text-blue-600' : 'text-gray-500'
+                    }`}>
+                      {session.time}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-1 ml-2">
+                    {/* ENHANCED: Edit button for all sessions */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditSession(session.id);
+                      }}
+                      className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                      title="Edit session slot"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    {/* ENHANCED: Delete button for all sessions with better styling */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveSession(session.id);
+                      }}
+                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Remove session slot"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </button>
+            </div>
           ))}
         </div>
+
+        {/* ENHANCED: Session management info */}
+        {sessions.length === 0 && (
+          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+            <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500 mb-2">No session slots available</p>
+            <p className="text-sm text-gray-400">Add a session slot to get started</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -229,13 +497,13 @@ const Attendance = () => {
                 </button>
               )}
               
-              <Link
-                to="/attendance/history"
+              <button
+                onClick={() => alert('Navigate to attendance history')}
                 className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg transition duration-200"
               >
                 <History className="h-5 w-5" />
                 <span>View History</span>
-              </Link>
+              </button>
             </div>
           </div>
 
@@ -250,7 +518,6 @@ const Attendance = () => {
                 <Users className="h-8 w-8 text-gray-400" />
               </div>
             </div>
-
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -260,7 +527,6 @@ const Attendance = () => {
                 <CheckCircle className="h-8 w-8 text-green-400" />
               </div>
             </div>
-
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -270,7 +536,6 @@ const Attendance = () => {
                 <XCircle className="h-8 w-8 text-red-400" />
               </div>
             </div>
-
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -288,7 +553,18 @@ const Attendance = () => {
         {/* Recognition Results */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recognized Students</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Recognized Students</h3>
+              {recognizedStudents.length > 0 && (
+                <button
+                  onClick={clearAllRecognizedStudents}
+                  className="flex items-center space-x-1 text-red-600 hover:text-red-800 transition-colors text-sm"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Clear All</span>
+                </button>
+              )}
+            </div>
             
             {recognizedStudents.length === 0 ? (
               <div className="text-center py-8">
@@ -299,7 +575,7 @@ const Attendance = () => {
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {recognizedStudents.map((student) => (
-                  <div key={student.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <div key={student.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg group">
                     <img
                       src={student.photo}
                       alt={student.name}
@@ -310,10 +586,17 @@ const Attendance = () => {
                       <p className="text-sm text-gray-500">{student.rollNo} • {student.class}</p>
                       <p className="text-xs text-gray-400">{student.timestamp}</p>
                     </div>
-                    <div className="flex-shrink-0">
+                    <div className="flex items-center space-x-2">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConfidenceColor(student.confidence)}`}>
                         {student.confidence}%
                       </span>
+                      <button
+                        onClick={() => removeRecognizedStudent(student.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 transition-all duration-200"
+                        title="Remove student from attendance"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -333,13 +616,13 @@ const Attendance = () => {
                 <Clock className="h-4 w-4" />
                 <span>End Session</span>
               </button>
-              <Link
-                to="/reports"
+              <button
+                onClick={() => alert('Navigate to reports')}
                 className="w-full flex items-center justify-center space-x-2 bg-purple-50 hover:bg-purple-100 text-purple-700 py-3 px-4 rounded-lg transition duration-200"
               >
                 <History className="h-4 w-4" />
                 <span>Generate Report</span>
-              </Link>
+              </button>
             </div>
           </div>
         </div>

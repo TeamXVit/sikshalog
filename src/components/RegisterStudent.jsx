@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "face-api.js";
-import { Camera, Check, XCircle, Loader2 } from "lucide-react";
+import { Camera, Check, XCircle, Loader2, Trash2, Eye, EyeOff } from "lucide-react";
 
 export default function RegisterStudent() {
   /* ---------- Refs ---------- */
@@ -10,9 +10,17 @@ export default function RegisterStudent() {
   /* ---------- State ---------- */
   const [status,       setStatus]       = useState("Initializing…");
   const [name,         setName]         = useState("");
-  const [regno,         setRegno]         = useState("");
+  const [regno,        setRegno]        = useState("");
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [faceReady,    setFaceReady]    = useState(false);
+  const [storedFaces,  setStoredFaces]  = useState([]);
+  const [showData,     setShowData]     = useState(false);
+
+  /* ---------- Load stored data ---------- */
+  const loadStoredData = () => {
+    const faces = JSON.parse(localStorage.getItem("faces") || "[]");
+    setStoredFaces(faces);
+  };
 
   /* ---------- Load models & start camera ---------- */
   useEffect(() => {
@@ -33,7 +41,7 @@ export default function RegisterStudent() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
-            setStatus("Ready • Position face & enter name");
+            setStatus("Ready • Position face & enter details");
             detectLoop(); // start passive face-present check
           };
         }
@@ -44,6 +52,7 @@ export default function RegisterStudent() {
     };
 
     init();
+    loadStoredData(); // Load stored data on component mount
 
     /* Cleanup camera on unmount */
     return () => {
@@ -82,6 +91,9 @@ export default function RegisterStudent() {
     if (!name.trim()) {
       alert("Enter a name first!"); return;
     }
+    if (!regno.trim()) {
+      alert("Enter registration number first!"); return;
+    }
     if (!faceReady) {
       alert("No face detected!"); return;
     }
@@ -100,18 +112,39 @@ export default function RegisterStudent() {
     const faces = JSON.parse(localStorage.getItem("faces") || "[]");
     faces.push({
       name: name.trim(),
+      regno: regno.trim(),
       descriptor: Array.from(detection.descriptor),
       timestamp: new Date().toISOString(),
     });
     localStorage.setItem("faces", JSON.stringify(faces));
 
     setName("");
+    setRegno("");
     setStatus("✅ Saved! Register another student");
+    loadStoredData(); // Refresh the stored data display
+  };
+
+  /* ---------- Delete stored data ---------- */
+  const handleDelete = (index) => {
+    if (window.confirm("Are you sure you want to delete this record?")) {
+      const faces = JSON.parse(localStorage.getItem("faces") || "[]");
+      faces.splice(index, 1);
+      localStorage.setItem("faces", JSON.stringify(faces));
+      loadStoredData(); // Refresh the display
+    }
+  };
+
+  /* ---------- Clear all data ---------- */
+  const handleClearAll = () => {
+    if (window.confirm("Are you sure you want to delete ALL registered faces? This cannot be undone.")) {
+      localStorage.removeItem("faces");
+      loadStoredData(); // Refresh the display
+    }
   };
 
   /* ---------- UI ---------- */
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Title */}
       <h1 className="text-3xl font-bold text-gray-900">Register Student</h1>
 
@@ -148,7 +181,7 @@ export default function RegisterStudent() {
         <input
           value={regno}
           onChange={e => setRegno(e.target.value)}
-          placeholder="Enter student name"
+          placeholder="Enter registration number"
           className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
         />
         <button
@@ -184,6 +217,60 @@ export default function RegisterStudent() {
           <span className="flex items-center gap-1 text-gray-500">
             <XCircle className="h-4 w-4" /> Not Detected
           </span>
+        )}
+      </div>
+
+      {/* Stored Data Section */}
+      <div className="bg-white border rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Registered Students ({storedFaces.length})
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowData(!showData)}
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
+            >
+              {showData ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showData ? "Hide" : "Show"} Data
+            </button>
+            {storedFaces.length > 0 && (
+              <button
+                onClick={handleClearAll}
+                className="flex items-center gap-2 px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg"
+              >
+                <Trash2 className="h-4 w-4" />
+                Clear All
+              </button>
+            )}
+          </div>
+        </div>
+
+        {showData && (
+          <div className="space-y-3">
+            {storedFaces.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No students registered yet.</p>
+            ) : (
+              storedFaces.map((face, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{face.name}</div>
+                    <div className="text-sm text-gray-600">Reg No: {face.regno}</div>
+                    <div className="text-xs text-gray-500">
+                      Registered: {new Date(face.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(index)}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
     </div>

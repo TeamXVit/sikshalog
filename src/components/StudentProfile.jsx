@@ -1,48 +1,13 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Award, TrendingUp, Clock } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Award, TrendingUp, Clock, AlertTriangle, CheckCircle, XCircle, Heart, Shield, Thermometer } from 'lucide-react';
+import StudentsData from './StudentsData';
 
 const StudentProfile = () => {
   const { id } = useParams();
 
   // Mock student data
-  const student = {
-    id: 1,
-    name: 'Aadhya Sharma',
-    rollNo: 'STU001',
-    class: '10-A',
-    section: 'A',
-    admissionDate: '2023-04-15',
-    dateOfBirth: '2008-07-22',
-    fatherName: 'Rajesh Sharma',
-    motherName: 'Sunita Sharma',
-    phone: '+91 9876543210',
-    email: 'rajesh.sharma@email.com',
-    address: '123, Gandhi Nagar, Rural District, State - 123456',
-    aadharNumber: '1234-5678-9012',
-    photo: 'https://images.unsplash.com/photo-1494790108755-2616c95a70e4?w=300&h=300&fit=crop&crop=face',
-    overallAttendance: 92,
-    currentMonthAttendance: 89,
-    grades: [
-      { subject: 'Mathematics', marks: 85, grade: 'A' },
-      { subject: 'Science', marks: 78, grade: 'B+' },
-      { subject: 'English', marks: 92, grade: 'A+' },
-      { subject: 'Hindi', marks: 88, grade: 'A' },
-      { subject: 'Social Studies', marks: 82, grade: 'A' }
-    ],
-    achievements: [
-      'Science Fair Winner 2024',
-      'Best Student Award 2023',
-      'Mathematics Olympiad Participant'
-    ],
-    attendanceHistory: [
-      { date: '2024-01-15', status: 'present', sessions: ['Morning', 'Afternoon'] },
-      { date: '2024-01-16', status: 'present', sessions: ['Morning', 'Afternoon'] },
-      { date: '2024-01-17', status: 'absent', sessions: [] },
-      { date: '2024-01-18', status: 'present', sessions: ['Morning'] },
-      { date: '2024-01-19', status: 'present', sessions: ['Morning', 'Afternoon'] }
-    ]
-  };
+  const student = StudentsData[id-1];
 
   const getGradeColor = (grade) => {
     switch (grade) {
@@ -51,6 +16,26 @@ const StudentProfile = () => {
       case 'B+': return 'text-blue-700 bg-blue-100';
       case 'B': return 'text-blue-600 bg-blue-50';
       default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const getRemarkStyle = (severity) => {
+    switch (severity) {
+      case 'high': return 'border-l-red-500 bg-red-50';
+      case 'medium': return 'border-l-yellow-500 bg-yellow-50';
+      case 'low': return 'border-l-blue-500 bg-blue-50';
+      case 'positive': return 'border-l-green-500 bg-green-50';
+      default: return 'border-l-gray-500 bg-gray-50';
+    }
+  };
+
+  const getRemarkIcon = (severity) => {
+    switch (severity) {
+      case 'high': return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'medium': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'low': return <AlertTriangle className="h-4 w-4 text-blue-500" />;
+      case 'positive': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      default: return <AlertTriangle className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -99,8 +84,9 @@ const StudentProfile = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Personal Information */}
+        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Personal Information */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -167,6 +153,143 @@ const StudentProfile = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Remarks Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Teacher Remarks</h3>
+            <div className="space-y-4">
+              {student.remarks.map((remark) => (
+                <div key={remark.id} className={`border-l-4 p-4 rounded-lg ${getRemarkStyle(remark.severity)}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-2">
+                      {getRemarkIcon(remark.severity)}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="font-medium text-gray-900">{remark.title}</h4>
+                          <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                            {remark.subject}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">{remark.description}</p>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>By: {remark.addedBy}</span>
+                          <span>{new Date(remark.date).toLocaleDateString('en-IN')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Medical History */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+              <Heart className="h-5 w-5 text-red-500" />
+              <span>Medical History</span>
+            </h3>
+            
+            {/* Basic Medical Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Blood Group</label>
+                <p className="text-gray-900 font-semibold">{student.medicalHistory.bloodGroup}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Height</label>
+                <p className="text-gray-900">{student.medicalHistory.height}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Weight</label>
+                <p className="text-gray-900">{student.medicalHistory.weight}</p>
+              </div>
+            </div>
+
+            {/* Allergies & Conditions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Allergies</h4>
+                <div className="space-y-1">
+                  {student.medicalHistory.allergies.map((allergy, index) => (
+                    <span key={index} className="inline-block bg-red-100 text-red-700 text-sm px-2 py-1 rounded-full mr-2">
+                      {allergy}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Chronic Conditions</h4>
+                <div className="space-y-1">
+                  {student.medicalHistory.chronicConditions.map((condition, index) => (
+                    <span key={index} className="inline-block bg-yellow-100 text-yellow-700 text-sm px-2 py-1 rounded-full mr-2">
+                      {condition}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2 flex items-center space-x-1">
+                <Phone className="h-4 w-4" />
+                <span>Emergency Medical Contact</span>
+              </h4>
+              <p className="text-gray-700">{student.medicalHistory.emergencyContact.name}</p>
+              <p className="text-sm text-gray-600">{student.medicalHistory.emergencyContact.phone}</p>
+              <p className="text-sm text-gray-600">{student.medicalHistory.emergencyContact.relation}</p>
+            </div>
+
+            {/* Vaccinations */}
+            <div className="mb-6">
+              <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-1">
+                <Shield className="h-4 w-4 text-green-500" />
+                <span>Vaccination Records</span>
+              </h4>
+              <div className="space-y-2">
+                {student.medicalHistory.vaccinations.map((vaccination, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div>
+                      <span className="font-medium text-gray-900">{vaccination.vaccine}</span>
+                      <p className="text-sm text-gray-600">{vaccination.manufacturer}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-900">{new Date(vaccination.date).toLocaleDateString('en-IN')}</p>
+                      <span className="text-xs bg-green-200 text-green-700 px-2 py-1 rounded-full">
+                        {vaccination.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Medical Reports */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-1">
+                <Thermometer className="h-4 w-4 text-blue-500" />
+                <span>Recent Medical Reports</span>
+              </h4>
+              <div className="space-y-3">
+                {student.medicalHistory.medicalReports.map((report, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h5 className="font-medium text-gray-900">{report.type}</h5>
+                      <span className="text-sm text-gray-500">{new Date(report.date).toLocaleDateString('en-IN')}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-1">Dr: {report.doctor}</p>
+                    <p className="text-sm text-gray-700 mb-2">
+                      <strong>Findings:</strong> {report.findings}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <strong>Recommendations:</strong> {report.recommendations}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
