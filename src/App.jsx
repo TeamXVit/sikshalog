@@ -6,9 +6,9 @@ import StudentProfile from './components/StudentProfile';
 import Attendance from './components/Attendance';
 import AttendanceHistory from './components/AttendanceHistory';
 import Reports from './components/Reports';
-// import Teachers from './components/Teachers';
-// import RegisterStudent from "./RegisterStudent";
-// import TakeAttendance from "./TakeAttendance";
+import Teachers from './components/Teachers';
+import RegisterStudent from "./components/RegisterStudent";
+import DetectStudent from "./components/DetectStudent";
 import Layout from './components/Layout';
 
 function App() {
@@ -26,9 +26,9 @@ function App() {
               <Route path="/attendance" element={<Attendance />} />
               <Route path="/attendance/history" element={<AttendanceHistory />} />
               <Route path="/reports" element={<Reports />} />
-              {/* <Route path="/teachers" element={<Teachers />} />
+              <Route path="/teachers" element={<Teachers />} />
               <Route path="/register" element={<RegisterStudent />} />
-              <Route path="/take-attendance" element={<TakeAttendance />} /> */}
+              <Route path="/detect" element={<DetectStudent />} />
             </Routes>
           </Layout>
         } />

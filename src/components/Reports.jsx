@@ -19,6 +19,23 @@ import {
   ChevronRight,
   Eye
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 
 const Reports = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('monthly');
@@ -27,6 +44,7 @@ const Reports = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [reportType, setReportType] = useState('overview');
   const [expandedSection, setExpandedSection] = useState('attendance');
+  const [chartType, setChartType] = useState('line');
 
   const timeframes = [
     { id: 'daily', name: 'Daily' },
@@ -39,6 +57,37 @@ const Reports = () => {
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // Chart data
+  const dailyAttendanceData = [
+    { date: 'Sep 10', present: 1150, absent: 97, percentage: 92.2 },
+    { date: 'Sep 11', present: 1142, absent: 105, percentage: 91.6 },
+    { date: 'Sep 12', present: 1167, absent: 80, percentage: 93.6 },
+    { date: 'Sep 13', present: 1156, absent: 91, percentage: 92.7 },
+    { date: 'Sep 14', present: 1134, absent: 113, percentage: 90.9 }
+  ];
+
+  const classwiseData = [
+    { class: '10-A', totalStudents: 45, averageAttendance: 94.2, present: 42, absent: 3 },
+    { class: '10-B', totalStudents: 43, averageAttendance: 91.8, present: 40, absent: 3 },
+    { class: '9-A', totalStudents: 47, averageAttendance: 88.9, present: 42, absent: 5 },
+    { class: '9-B', totalStudents: 44, averageAttendance: 90.1, present: 40, absent: 4 },
+    { class: '8-A', totalStudents: 48, averageAttendance: 87.3, present: 42, absent: 6 },
+    { class: '8-B', totalStudents: 46, averageAttendance: 89.7, present: 41, absent: 5 },
+    { class: '8-C', totalStudents: 45, averageAttendance: 86.8, present: 39, absent: 6 }
+  ];
+
+  const weeklyData = [
+    { week: 'Week 1', present: 5749, absent: 486, percentage: 92.2 },
+    { week: 'Week 2', present: 5688, absent: 547, percentage: 91.2 },
+    { week: 'Week 3', present: 5812, absent: 423, percentage: 93.2 },
+    { week: 'Week 4', present: 5723, absent: 512, percentage: 91.8 }
+  ];
+
+  const pieChartData = [
+    { name: 'Present', value: 1156, color: '#10B981' },
+    { name: 'Absent', value: 91, color: '#EF4444' }
   ];
 
   // Mock report data
@@ -55,28 +104,9 @@ const Reports = () => {
   };
 
   const attendanceData = {
-    daily: [
-      { date: '2024-09-10', present: 1150, absent: 97, percentage: 92.2 },
-      { date: '2024-09-11', present: 1142, absent: 105, percentage: 91.6 },
-      { date: '2024-09-12', present: 1167, absent: 80, percentage: 93.6 },
-      { date: '2024-09-13', present: 1156, absent: 91, percentage: 92.7 },
-      { date: '2024-09-14', present: 1134, absent: 113, percentage: 90.9 }
-    ],
-    weekly: [
-      { week: 'Week 1', present: 5749, absent: 486, percentage: 92.2 },
-      { week: 'Week 2', present: 5688, absent: 547, percentage: 91.2 },
-      { week: 'Week 3', present: 5812, absent: 423, percentage: 93.2 },
-      { week: 'Week 4', present: 5723, absent: 512, percentage: 91.8 }
-    ],
-    classwise: [
-      { class: '10-A', totalStudents: 45, averageAttendance: 94.2, present: 42, absent: 3 },
-      { class: '10-B', totalStudents: 43, averageAttendance: 91.8, present: 40, absent: 3 },
-      { class: '9-A', totalStudents: 47, averageAttendance: 88.9, present: 42, absent: 5 },
-      { class: '9-B', totalStudents: 44, averageAttendance: 90.1, present: 40, absent: 4 },
-      { class: '8-A', totalStudents: 48, averageAttendance: 87.3, present: 42, absent: 6 },
-      { class: '8-B', totalStudents: 46, averageAttendance: 89.7, present: 41, absent: 5 },
-      { class: '8-C', totalStudents: 45, averageAttendance: 86.8, present: 39, absent: 6 }
-    ]
+    daily: dailyAttendanceData,
+    weekly: weeklyData,
+    classwise: classwiseData
   };
 
   const topPerformers = [
@@ -132,8 +162,121 @@ const Reports = () => {
   };
 
   const generatePDFReport = () => {
-    // Mock PDF generation
     alert('PDF report generation would be implemented with libraries like jsPDF or react-pdf');
+  };
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {`${entry.dataKey}: ${entry.value}${entry.dataKey === 'percentage' || entry.dataKey === 'averageAttendance' ? '%' : ''}`}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderMainChart = () => {
+    switch (chartType) {
+      case 'area':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={dailyAttendanceData}>
+              <defs>
+                <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
+              <YAxis stroke="#6B7280" fontSize={12} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Area 
+                type="monotone" 
+                dataKey="present" 
+                stroke="#10B981" 
+                fillOpacity={1} 
+                fill="url(#colorPresent)"
+                name="Present"
+              />
+              <Area 
+                type="monotone" 
+                dataKey="absent" 
+                stroke="#EF4444" 
+                fillOpacity={1} 
+                fill="url(#colorAbsent)"
+                name="Absent"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        );
+
+      case 'bar':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dailyAttendanceData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
+              <YAxis stroke="#6B7280" fontSize={12} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Bar dataKey="present" fill="#10B981" name="Present" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="absent" fill="#EF4444" name="Absent" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      default:
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={dailyAttendanceData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
+              <YAxis stroke="#6B7280" fontSize={12} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="present" 
+                stroke="#10B981" 
+                strokeWidth={3}
+                dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, fill: '#10B981' }}
+                name="Present"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="absent" 
+                stroke="#EF4444" 
+                strokeWidth={3}
+                dot={{ fill: '#EF4444', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, fill: '#EF4444' }}
+                name="Absent"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="percentage" 
+                stroke="#3B82F6" 
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 3 }}
+                name="Attendance %"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+    }
   };
 
   return (
@@ -213,9 +356,9 @@ const Reports = () => {
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
+              <option value="2025">2025</option>
               <option value="2024">2024</option>
               <option value="2023">2023</option>
-              <option value="2022">2022</option>
             </select>
           </div>
         </div>
@@ -303,25 +446,49 @@ const Reports = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Attendance Trends */}
+          {/* Attendance Trends with Interactive Charts */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900">Attendance Trends</h3>
-              <div className="flex items-center space-x-2">
-                <button className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>View Chart</span>
-                </button>
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setChartType('line')}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      chartType === 'line' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Line
+                  </button>
+                  <button
+                    onClick={() => setChartType('area')}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      chartType === 'area' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Area
+                  </button>
+                  <button
+                    onClick={() => setChartType('bar')}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      chartType === 'bar' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Bar
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Mock Chart Area */}
-            <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center mb-6">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">Attendance trend chart would appear here</p>
-                <p className="text-sm text-gray-400 mt-1">Integration with Chart.js or similar library</p>
-              </div>
+            {/* Interactive Chart */}
+            <div className="mb-6">
+              {renderMainChart()}
             </div>
 
             {/* Weekly Data */}
@@ -353,6 +520,24 @@ const Reports = () => {
                 <Download className="h-4 w-4" />
                 <span>Export Details</span>
               </button>
+            </div>
+
+            {/* Class Performance Chart */}
+            <div className="mb-6">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={classwiseData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis dataKey="class" stroke="#6B7280" fontSize={12} />
+                  <YAxis stroke="#6B7280" fontSize={12} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar 
+                    dataKey="averageAttendance" 
+                    fill="#3B82F6" 
+                    name="Attendance %" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
 
             <div className="overflow-x-auto">
@@ -394,6 +579,35 @@ const Reports = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Attendance Distribution Pie Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Attendance</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <RechartsPieChart>
+                <Pie
+                  data={pieChartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {pieChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value, name) => [
+                    `${value} students (${((value / overviewStats.totalStudents) * 100).toFixed(1)}%)`, 
+                    name
+                  ]}
+                />
+                <Legend />
+              </RechartsPieChart>
+            </ResponsiveContainer>
+          </div>
+
           {/* Top Performers */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center space-x-2 mb-4">

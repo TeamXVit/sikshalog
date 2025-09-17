@@ -27,7 +27,7 @@ const Layout = ({ children }) => {
     { name: "Attendance", href: "/attendance", icon: Clock },
     { name: "Reports", href: "/reports", icon: BarChart3 },
     { name: "Teachers", href: "/teachers", icon: UserPlus },
-    { name: "Register Student", href: "/enroll", icon: Camera },
+    { name: "Register Student", href: "/register", icon: Camera },
     { name: "Detect Student", href: "/detect", icon: Camera },
   ];
 

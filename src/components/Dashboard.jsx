@@ -135,18 +135,18 @@ const Dashboard = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center justify-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition duration-200">
+          <a href="/attendance" className="flex items-center justify-center space-x-3 p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition duration-200">
             <Clock className="h-5 w-5 text-blue-600" />
             <span className="text-blue-700 font-medium">Mark Attendance</span>
-          </button>
-          <button className="flex items-center justify-center space-x-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition duration-200">
+          </a>
+          <a href="/students" className="flex items-center justify-center space-x-3 p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition duration-200">
             <Users className="h-5 w-5 text-green-600" />
             <span className="text-green-700 font-medium">View Students</span>
-          </button>
-          <button className="flex items-center justify-center space-x-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition duration-200">
+          </a>
+          <a href="/reports" className="flex items-center justify-center space-x-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition duration-200">
             <TrendingUp className="h-5 w-5 text-purple-600" />
             <span className="text-purple-700 font-medium">Generate Reports</span>
-          </button>
+          </a>
         </div>
       </div>
     </div>
