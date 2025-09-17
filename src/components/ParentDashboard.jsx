@@ -60,18 +60,6 @@ const ParentDashboard = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Overall Grade</p>
-              <p className="text-2xl font-bold text-emerald-600">A</p>
-            </div>
-            <div className="bg-emerald-100 p-3 rounded-xl">
-              <BookOpen className="w-6 h-6 text-emerald-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
               <p className="text-sm font-medium text-gray-600">Active Students</p>
               <p className="text-2xl font-bold text-green-600">2</p>
             </div>

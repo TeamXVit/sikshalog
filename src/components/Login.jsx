@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Eye, EyeOff, UserCheck, Shield, Clock } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, UserCheck, Shield, Clock, Users, GraduationCap } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [userType, setUserType] = useState('teacher'); // 'teacher' or 'parent'
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
@@ -16,8 +17,16 @@ const Login = () => {
     // Simulate login delay
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/dashboard');
+      if (userType === 'parent') {
+        navigate('/parent/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     }, 1500);
+  };
+
+  const handleParentLoginRedirect = () => {
+    navigate('/parent/login');
   };
 
   return (
@@ -88,6 +97,36 @@ const Login = () => {
             <p className="text-gray-300">Sign in to access your dashboard</p>
           </div>
 
+          {/* User Type Selection */}
+          <div className="mb-6">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setUserType('teacher')}
+                className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition ${
+                  userType === 'teacher'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                <GraduationCap size={20} />
+                <span>Teacher</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserType('parent')}
+                className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition ${
+                  userType === 'parent'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                <Users size={20} />
+                <span>Parent</span>
+              </button>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div className="space-y-2">
@@ -97,7 +136,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="teacher@school.edu"
+                placeholder={userType === 'parent' ? 'parent@example.com' : 'teacher@school.edu'}
                 required
               />
             </div>
@@ -142,7 +181,11 @@ const Login = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full text-white py-3 px-4 rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                userType === 'parent'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:ring-purple-500'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:ring-blue-500'
+              }`}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -150,15 +193,41 @@ const Login = () => {
                   Signing in...
                 </div>
               ) : (
-                'Sign In'
+                `Sign In as ${userType === 'parent' ? 'Parent' : 'Teacher'}`
               )}
             </button>
           </form>
 
+          {/* Alternative Login Option */}
+          <div className="mt-6 text-center">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/20"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-transparent text-gray-400">or</span>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleParentLoginRedirect}
+              className="mt-4 w-full flex items-center justify-center space-x-2 py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-medium transition border border-white/20"
+            >
+              <Users size={20} />
+              <span>Access Parent Portal</span>
+            </button>
+          </div>
+
           <div className="mt-8 text-center">
-            <p className="text-gray-400">
-              Demo Credentials: <span className="font-mono">teacher@school.edu / password123</span>
-            </p>
+            <p className="text-gray-400 text-sm mb-2">Demo Credentials:</p>
+            <div className="space-y-1 text-xs">
+              <p className="text-gray-400">
+                <span className="text-blue-400">Teacher:</span> <span className="font-mono">teacher@school.edu / password123</span>
+              </p>
+              <p className="text-gray-400">
+                <span className="text-purple-400">Parent:</span> <span className="font-mono">parent@example.com / parent123</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>

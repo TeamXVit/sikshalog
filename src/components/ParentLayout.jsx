@@ -31,7 +31,7 @@ const ParentLayout = ({ children }) => {
   ];
 
   const handleLogout = () => {
-    navigate("/parent/login");
+    navigate("/login");
   };
 
   // Close dropdown when clicking outside
