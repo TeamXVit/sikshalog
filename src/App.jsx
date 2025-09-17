@@ -10,8 +10,17 @@ import Teachers from './components/Teachers';
 import RegisterStudent from "./components/RegisterStudent";
 import DetectStudent from "./components/DetectStudent";
 import Layout from './components/Layout';
+import ParentLogin from './components/ParentLogin';
+import ParentLayout from "./components/ParentLayout";
+import ParentDashboard from './components/ParentDashboard';
+import ParentAttendance from './components/ParentAttendance';
+import ParentAcademic from './components/ParentAcademic';
+import ParentStudentProfile from './components/ParentStudentProfile';
+import ParentFees from './components/ParentFees';
+import ParentAnnouncements from './components/ParentAnnouncements';
+import ParentAchievements from './components/ParentAchievements';
 
-function App() {
+export default function App() {
   return (
     <Router>
       <Routes>
@@ -32,9 +41,21 @@ function App() {
             </Routes>
           </Layout>
         } />
+        <Route path='/parent/login' element={<ParentLogin />} />
+        <Route path='parent/*' element={
+          <ParentLayout>
+            <Routes>
+              <Route path="dashboard" element={<ParentDashboard />} />
+              <Route path="attendance" element={<ParentAttendance />} />
+              <Route path="performance" element={<ParentAcademic />} />
+              <Route path="student/:id" element={<ParentStudentProfile />} />
+              <Route path="fees" element={<ParentFees />} />
+              <Route path="announcements" element={<ParentAnnouncements />} />
+              <Route path="achievements" element={<ParentAchievements />} />
+            </Routes>
+          </ParentLayout>
+        } />
       </Routes>
     </Router>
   );
 }
-
-export default App;
