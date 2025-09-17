@@ -6,63 +6,231 @@ const Students = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('all');
 
-  const students = [
-    {
-      id: 1,
-      name: 'Aadhya Sharma',
-      rollNo: 'STU001',
-      class: '10-A',
-      fatherName: 'Rajesh Sharma',
-      phone: '+91 9876543210',
-      attendance: 92,
-      photo: 'https://images.unsplash.com/photo-1494790108755-2616c95a70e4?w=150&h=150&fit=crop&crop=face',
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: 'Arjun Patel',
-      rollNo: 'STU002',
-      class: '10-A',
-      fatherName: 'Vikram Patel',
-      phone: '+91 9876543211',
-      attendance: 88,
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: 'Priya Kumari',
-      rollNo: 'STU003',
-      class: '9-B',
-      fatherName: 'Suresh Kumar',
-      phone: '+91 9876543212',
-      attendance: 95,
-      photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-      status: 'active'
-    },
-    {
-      id: 4,
-      name: 'Rohit Singh',
-      rollNo: 'STU004',
-      class: '9-B',
-      fatherName: 'Mahendra Singh',
-      phone: '+91 9876543213',
-      attendance: 76,
-      photo: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      status: 'inactive'
-    },
-    {
-      id: 5,
-      name: 'Kavya Reddy',
-      rollNo: 'STU005',
-      class: '8-C',
-      fatherName: 'Ravi Reddy',
-      phone: '+91 9876543214',
-      attendance: 91,
-      photo: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=150&h=150&fit=crop&crop=face',
-      status: 'active'
-    }
-  ];
+const students = [
+  {
+    id: 1,
+    name: 'Aadhya Sharma',
+    rollNo: 'STU001',
+    class: '10-A',
+    fatherName: 'Rajesh Sharma',
+    phone: '+91 9876543210',
+    attendance: 92,
+    photo: 'https://randomuser.me/api/portraits/women/65.jpg',
+    status: 'active'
+  },
+  {
+    id: 2,
+    name: 'Arjun Patel',
+    rollNo: 'STU002',
+    class: '10-A',
+    fatherName: 'Vikram Patel',
+    phone: '+91 9876543211',
+    attendance: 88,
+    photo: 'https://randomuser.me/api/portraits/men/66.jpg',
+    status: 'active'
+  },
+  {
+    id: 3,
+    name: 'Priya Kumari',
+    rollNo: 'STU003',
+    class: '9-B',
+    fatherName: 'Suresh Kumar',
+    phone: '+91 9876543212',
+    attendance: 95,
+    photo: 'https://randomuser.me/api/portraits/women/67.jpg',
+    status: 'active'
+  },
+  {
+    id: 4,
+    name: 'Rohit Singh',
+    rollNo: 'STU004',
+    class: '9-B',
+    fatherName: 'Mahendra Singh',
+    phone: '+91 9876543213',
+    attendance: 76,
+    photo: 'https://randomuser.me/api/portraits/men/68.jpg',
+    status: 'inactive'
+  },
+  {
+    id: 5,
+    name: 'Kavya Reddy',
+    rollNo: 'STU005',
+    class: '8-C',
+    fatherName: 'Ravi Reddy',
+    phone: '+91 9876543214',
+    attendance: 91,
+    photo: 'https://randomuser.me/api/portraits/women/69.jpg',
+    status: 'active'
+  },
+  {
+    id: 6,
+    name: 'Manish Verma',
+    rollNo: 'STU006',
+    class: '8-C',
+    fatherName: 'Harish Verma',
+    phone: '+91 9876543215',
+    attendance: 85,
+    photo: 'https://randomuser.me/api/portraits/men/69.jpg',
+    status: 'active'
+  },
+  {
+    id: 7,
+    name: 'Simran Kaur',
+    rollNo: 'STU007',
+    class: '10-B',
+    fatherName: 'Gurpreet Singh',
+    phone: '+91 9876543216',
+    attendance: 98,
+    photo: 'https://randomuser.me/api/portraits/women/70.jpg',
+    status: 'active'
+  },
+  {
+    id: 8,
+    name: 'Ananya Iyer',
+    rollNo: 'STU008',
+    class: '9-A',
+    fatherName: 'Srinivas Iyer',
+    phone: '+91 9876543217',
+    attendance: 82,
+    photo: 'https://randomuser.me/api/portraits/women/71.jpg',
+    status: 'active'
+  },
+  {
+    id: 9,
+    name: 'Farhan Ali',
+    rollNo: 'STU009',
+    class: '8-B',
+    fatherName: 'Imran Ali',
+    phone: '+91 9876543218',
+    attendance: 73,
+    photo: 'https://randomuser.me/api/portraits/men/71.jpg',
+    status: 'inactive'
+  },
+  {
+    id: 10,
+    name: 'Tanvi Mehta',
+    rollNo: 'STU010',
+    class: '10-C',
+    fatherName: 'Ramesh Mehta',
+    phone: '+91 9876543219',
+    attendance: 94,
+    photo: 'https://randomuser.me/api/portraits/women/72.jpg',
+    status: 'active'
+  },
+  // ADDITIONAL 10 STUDENTS
+  {
+    id: 11,
+    name: 'Ishaan Mehta',
+    rollNo: 'STU011',
+    class: '8-A',
+    fatherName: 'Ramesh Mehta', // sibling of Tanvi
+    phone: '+91 9876543219',
+    attendance: 89,
+    photo: 'https://randomuser.me/api/portraits/men/72.jpg',
+    status: 'active'
+  },
+  {
+    id: 12,
+    name: 'Riya Sharma',
+    rollNo: 'STU012',
+    class: '7-B',
+    fatherName: 'Rajesh Sharma', // sibling of Aadhya
+    phone: '+91 9876543210',
+    attendance: 87,
+    photo: 'https://randomuser.me/api/portraits/women/73.jpg',
+    status: 'active'
+  },
+  {
+    id: 13,
+    name: 'Devansh Gupta',
+    rollNo: 'STU013',
+    class: '10-A',
+    fatherName: 'Sanjay Gupta',
+    phone: '+91 9876543220',
+    attendance: 93,
+    photo: 'https://randomuser.me/api/portraits/men/73.jpg',
+    status: 'active'
+  },
+  {
+    id: 14,
+    name: 'Sneha Gupta',
+    rollNo: 'STU014',
+    class: '8-A',
+    fatherName: 'Sanjay Gupta', // sibling of Devansh
+    phone: '+91 9876543220',
+    attendance: 90,
+    photo: 'https://randomuser.me/api/portraits/women/74.jpg',
+    status: 'active'
+  },
+  {
+    id: 15,
+    name: 'Lakshya Nair',
+    rollNo: 'STU015',
+    class: '9-C',
+    fatherName: 'Vivek Nair',
+    phone: '+91 9876543221',
+    attendance: 78,
+    photo: 'https://randomuser.me/api/portraits/men/74.jpg',
+    status: 'inactive'
+  },
+  {
+    id: 16,
+    name: 'Meera Nair',
+    rollNo: 'STU016',
+    class: '6-A',
+    fatherName: 'Vivek Nair', // sibling of Lakshya
+    phone: '+91 9876543221',
+    attendance: 81,
+    photo: 'https://randomuser.me/api/portraits/women/75.jpg',
+    status: 'active'
+  },
+  {
+    id: 17,
+    name: 'Aarav Desai',
+    rollNo: 'STU017',
+    class: '10-B',
+    fatherName: 'Kunal Desai',
+    phone: '+91 9876543222',
+    attendance: 96,
+    photo: 'https://randomuser.me/api/portraits/men/75.jpg',
+    status: 'active'
+  },
+  {
+    id: 18,
+    name: 'Isha Desai',
+    rollNo: 'STU018',
+    class: '8-B',
+    fatherName: 'Kunal Desai', // sibling of Aarav
+    phone: '+91 9876543222',
+    attendance: 92,
+    photo: 'https://randomuser.me/api/portraits/women/76.jpg',
+    status: 'active'
+  },
+  {
+    id: 19,
+    name: 'Rahul Yadav',
+    rollNo: 'STU019',
+    class: '7-C',
+    fatherName: 'Suraj Yadav',
+    phone: '+91 9876543223',
+    attendance: 84,
+    photo: 'https://randomuser.me/api/portraits/men/76.jpg',
+    status: 'active'
+  },
+  {
+    id: 20,
+    name: 'Pooja Yadav',
+    rollNo: 'STU020',
+    class: '6-B',
+    fatherName: 'Suraj Yadav', // sibling of Rahul
+    phone: '+91 9876543223',
+    attendance: 86,
+    photo: 'https://randomuser.me/api/portraits/women/77.jpg',
+    status: 'active'
+  }
+];
+
+
 
   const classes = ['10-A', '10-B', '9-A', '9-B', '8-A', '8-B', '8-C'];
 
