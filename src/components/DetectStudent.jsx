@@ -160,131 +160,160 @@ export default function DetectStudent() {
     let frameCount = 0;
 
     const detectFaces = async () => {
-      try {
-        frameCount++;
-        
-        // Critical checks before detection
-        if (!videoRef.current || !canvasRef.current || !overlayCanvasRef.current) {
-          setDebugInfo("Missing video or canvas refs");
-          if (isDetecting) {
-            detectionRef.current = requestAnimationFrame(detectFaces);
-          }
-          return;
-        }
-
-        // Check video ready state - this is crucial!
-        if (videoRef.current.readyState < 2) {
-          setDebugInfo(`Video not ready, readyState: ${videoRef.current.readyState}`);
-          if (isDetecting) {
-            detectionRef.current = requestAnimationFrame(detectFaces);
-          }
-          return;
-        }
-
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const overlayCanvas = overlayCanvasRef.current;
-        
-        // Get actual video dimensions
-        const videoWidth = video.videoWidth || video.offsetWidth;
-        const videoHeight = video.videoHeight || video.offsetHeight;
-        
-        if (videoWidth === 0 || videoHeight === 0) {
-          setDebugInfo("Video dimensions are 0");
-          if (isDetecting) {
-            detectionRef.current = requestAnimationFrame(detectFaces);
-          }
-          return;
-        }
-
-        const displaySize = {
-          width: videoWidth,
-          height: videoHeight,
-        };
-
-        // Match canvas dimensions
-        faceapi.matchDimensions(canvas, displaySize);
-        faceapi.matchDimensions(overlayCanvas, displaySize);
-
-        // Perform detection with lower confidence for better results
-        const detections = await faceapi
-          .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ 
-            minConfidence: 0.3, // Lower threshold for better detection
-            maxResults: 10 
-          }))
-          .withFaceLandmarks()
-          .withFaceDescriptors();
-
-        // Update debug info
-        setDebugInfo(`Frame ${frameCount}: ${detections.length} faces detected`);
-
-        // Clear both canvases
-        const ctx = canvas.getContext("2d");
-        const overlayCtx = overlayCanvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-        setFaceCount(detections.length);
-
-        if (detections.length > 0) {
-          const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-          resizedDetections.forEach((detection, index) => {
-            const bestMatch = matcher.findBestMatch(detection.descriptor);
-            const box = detection.detection.box;
-            const label = bestMatch.distance < 0.6 ? bestMatch.label : "Unknown";
-            const confidence = Math.round((1 - bestMatch.distance) * 100);
-            const color = bestMatch.distance < 0.6 ? "#10B981" : "#EF4444";
-            
-            // Draw face box mirrored for selfie view
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.translate(-canvas.width, 0);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
-            ctx.restore();
-            
-            // Draw landmarks
-            const landmarks = detection.landmarks;
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.translate(-canvas.width, 0);
-            ctx.fillStyle = color;
-            landmarks.positions.forEach(point => {
-              ctx.beginPath();
-              ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
-              ctx.fill();
-            });
-            ctx.restore();
-
-            // Draw text labels (not mirrored for readability)
-            const textX = displaySize.width - box.x - box.width;
-            const textY = box.y - 10;
-            overlayCtx.font = "bold 16px Arial";
-            overlayCtx.fillStyle = color;
-            overlayCtx.strokeStyle = "rgba(0,0,0,0.7)";
-            overlayCtx.lineWidth = 3;
-            const text = `${label} (${confidence}%)`;
-            overlayCtx.strokeText(text, textX, textY);
-            overlayCtx.fillText(text, textX, textY);
-          });
-        }
-
-        // Continue detection loop
-        if (isDetecting) {
-          detectionRef.current = requestAnimationFrame(detectFaces);
-        }
-
-      } catch (error) {
-        console.error("Detection error:", error);
-        setStatus("❌ Detection error");
-        setDebugInfo(`Detection error: ${error.message}`);
-        if (isDetecting) {
-          detectionRef.current = requestAnimationFrame(detectFaces);
-        }
+  try {
+    frameCount++;
+    
+    // Critical checks before detection
+    if (!videoRef.current || !canvasRef.current || !overlayCanvasRef.current) {
+      setDebugInfo("Missing video or canvas refs");
+      if (isDetecting) {
+        detectionRef.current = requestAnimationFrame(detectFaces);
       }
+      return;
+    }
+
+    // Check video ready state - this is crucial!
+    if (videoRef.current.readyState < 2) {
+      setDebugInfo(`Video not ready, readyState: ${videoRef.current.readyState}`);
+      if (isDetecting) {
+        detectionRef.current = requestAnimationFrame(detectFaces);
+      }
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const overlayCanvas = overlayCanvasRef.current;
+    
+    // Get actual video dimensions
+    const videoWidth = video.videoWidth || video.offsetWidth;
+    const videoHeight = video.videoHeight || video.offsetHeight;
+    
+    if (videoWidth === 0 || videoHeight === 0) {
+      setDebugInfo("Video dimensions are 0");
+      if (isDetecting) {
+        detectionRef.current = requestAnimationFrame(detectFaces);
+      }
+      return;
+    }
+
+    const displaySize = {
+      width: videoWidth,
+      height: videoHeight,
     };
+
+    // Match canvas dimensions
+    faceapi.matchDimensions(canvas, displaySize);
+    faceapi.matchDimensions(overlayCanvas, displaySize);
+
+    // Perform detection with lower confidence for better results
+    const detections = await faceapi
+      .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ 
+        minConfidence: 0.3, // Lower threshold for better detection
+        maxResults: 10 
+      }))
+      .withFaceLandmarks()
+      .withFaceDescriptors();
+
+    // Update debug info
+    setDebugInfo(`Frame ${frameCount}: ${detections.length} faces detected`);
+
+    // Clear both canvases
+    const ctx = canvas.getContext("2d");
+    const overlayCtx = overlayCanvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    setFaceCount(detections.length);
+
+    if (detections.length > 0 && matcher) {
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+      resizedDetections.forEach((detection, index) => {
+        const bestMatch = matcher.findBestMatch(detection.descriptor);
+        const box = detection.detection.box;
+        const label = bestMatch.distance < 0.6 ? bestMatch.label : "Unknown";
+        const confidence = Math.round((1 - bestMatch.distance) * 100);
+        const color = bestMatch.distance < 0.6 ? "#10B981" : "#EF4444";
+        
+        // Draw face box mirrored for selfie view
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.translate(-canvas.width, 0);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(box.x, box.y, box.width, box.height);
+        ctx.restore();
+        
+        // Draw landmarks
+        const landmarks = detection.landmarks;
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.translate(-canvas.width, 0);
+        ctx.fillStyle = color;
+        landmarks.positions.forEach(point => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+        ctx.restore();
+
+        // Draw text labels (not mirrored for readability)
+        const textX = displaySize.width - box.x - box.width;
+        const textY = box.y - 10;
+        overlayCtx.font = "bold 16px Arial";
+        overlayCtx.fillStyle = color;
+        overlayCtx.strokeStyle = "rgba(0,0,0,0.7)";
+        overlayCtx.lineWidth = 3;
+        const text = `${label} (${confidence}%)`;
+        overlayCtx.strokeText(text, textX, textY);
+        overlayCtx.fillText(text, textX, textY);
+      });
+    } else if (detections.length > 0 && !matcher) {
+      // If no matcher is loaded, just draw detection boxes without recognition
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+      
+      resizedDetections.forEach((detection, index) => {
+        const box = detection.detection.box;
+        const color = "#6B7280"; // Gray color for unrecognized faces
+        
+        // Draw face box mirrored for selfie view
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.translate(-canvas.width, 0);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(box.x, box.y, box.width, box.height);
+        ctx.restore();
+        
+        // Draw text labels (not mirrored for readability)
+        const textX = displaySize.width - box.x - box.width;
+        const textY = box.y - 10;
+        overlayCtx.font = "bold 16px Arial";
+        overlayCtx.fillStyle = color;
+        overlayCtx.strokeStyle = "rgba(0,0,0,0.7)";
+        overlayCtx.lineWidth = 3;
+        const text = "Face Detected";
+        overlayCtx.strokeText(text, textX, textY);
+        overlayCtx.fillText(text, textX, textY);
+      });
+    }
+
+    // Continue detection loop
+    if (isDetecting) {
+      detectionRef.current = requestAnimationFrame(detectFaces);
+    }
+
+  } catch (error) {
+    console.error("Detection error:", error);
+    setStatus("❌ Detection error");
+    setDebugInfo(`Detection error: ${error.message}`);
+    if (isDetecting) {
+      detectionRef.current = requestAnimationFrame(detectFaces);
+    }
+  }
+};
+
 
     detectionRef.current = requestAnimationFrame(detectFaces);
   };

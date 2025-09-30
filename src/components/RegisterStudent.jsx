@@ -1,26 +1,45 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as faceapi from "face-api.js";
-import { Camera, Check, XCircle, Loader2, Trash2, Eye, EyeOff } from "lucide-react";
+import {
+  Camera,
+  Check,
+  XCircle,
+  Loader2,
+  Trash2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 export default function RegisterStudent() {
   /* ---------- Refs ---------- */
-  const videoRef   = useRef(null);
-  const canvasRef  = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
   /* ---------- State ---------- */
-  const [status,       setStatus]       = useState("Initializing…");
-  const [name,         setName]         = useState("");
-  const [regno,        setRegno]        = useState("");
+  const [status, setStatus] = useState("Initializing…");
+  const [name, setName] = useState("");
+  const [regno, setRegno] = useState("");
   const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [faceReady,    setFaceReady]    = useState(false);
-  const [storedFaces,  setStoredFaces]  = useState([]);
-  const [showData,     setShowData]     = useState(false);
+  const [faceReady, setFaceReady] = useState(false);
+  const [storedFaces, setStoredFaces] = useState([]);
+  const [showData, setShowData] = useState(false);
 
-  /* ---------- Load stored data ---------- */
-  const loadStoredData = () => {
-    const faces = JSON.parse(localStorage.getItem("faces") || "[]");
-    setStoredFaces(faces);
-  };
+ const API_BASE_URL = 'http://localhost:5000/api/students';
+
+// Load stored data from backend
+const loadStoredData = async () => {
+  try {
+    const response = await fetch(API_BASE_URL);
+    const data = await response.json();
+    if (data.success) {
+      // Data is already parsed and ready to use - no need to parse face descriptors here
+      // since we're not using them in the UI list
+      setStoredFaces(data.data.students);
+    }
+  } catch (error) {
+    console.error('Error loading stored data:', error);
+  }
+};
 
   /* ---------- Load models & start camera ---------- */
   useEffect(() => {
@@ -57,7 +76,7 @@ export default function RegisterStudent() {
     /* Cleanup camera on unmount */
     return () => {
       if (videoRef.current?.srcObject)
-        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+        videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
@@ -85,63 +104,105 @@ export default function RegisterStudent() {
     requestAnimationFrame(detectLoop);
   };
 
-  /* ---------- Capture & store ---------- */
-  const handleSave = async () => {
-    if (!modelsLoaded) return;
-    if (!name.trim()) {
-      alert("Enter a name first!"); return;
-    }
-    if (!regno.trim()) {
-      alert("Enter registration number first!"); return;
-    }
-    if (!faceReady) {
-      alert("No face detected!"); return;
-    }
+ // Updated save function (no changes needed as we already send array)
+const handleSave = async () => {
+  if (!modelsLoaded) return;
+  if (!name.trim()) {
+    alert("Enter a name first!"); return;
+  }
+  if (!regno.trim()) {
+    alert("Enter registration number first!"); return;
+  }
+  if (!faceReady) {
+    alert("No face detected!"); return;
+  }
 
-    setStatus("Capturing…");
-    const detection = await faceapi
-      .detectSingleFace(videoRef.current)
-      .withFaceLandmarks()
-      .withFaceDescriptor();
+  setStatus("Capturing…");
+  const detection = await faceapi
+    .detectSingleFace(videoRef.current)
+    .withFaceLandmarks()
+    .withFaceDescriptor();
 
-    if (!detection) {
-      setStatus("Ready • Face lost, try again");
-      return;
-    }
+  if (!detection) {
+    setStatus("Ready • Face lost, try again");
+    return;
+  }
 
-    const faces = JSON.parse(localStorage.getItem("faces") || "[]");
-    faces.push({
-      name: name.trim(),
-      regno: regno.trim(),
-      descriptor: Array.from(detection.descriptor),
-      timestamp: new Date().toISOString(),
+  try {
+    const response = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        regno: regno.trim(),
+        descriptor: Array.from(detection.descriptor) // Send as array - will be stringified in backend
+      }),
     });
-    localStorage.setItem("faces", JSON.stringify(faces));
 
-    setName("");
-    setRegno("");
-    setStatus("✅ Saved! Register another student");
-    loadStoredData(); // Refresh the stored data display
-  };
+    const data = await response.json();
+    
+    if (data.success) {
+      setName("");
+      setRegno("");
+      setStatus("✅ Saved! Register another student");
+      loadStoredData(); // Refresh the stored data display
+    } else {
+      setStatus(`❌ Error: ${data.message}`);
+    }
+  } catch (error) {
+    console.error('Error saving student:', error);
+    setStatus("❌ Failed to save student");
+  }
+};
 
-  /* ---------- Delete stored data ---------- */
-  const handleDelete = (index) => {
+  // Updated delete function
+  const handleDelete = async (studentId) => {
     if (window.confirm("Are you sure you want to delete this record?")) {
-      const faces = JSON.parse(localStorage.getItem("faces") || "[]");
-      faces.splice(index, 1);
-      localStorage.setItem("faces", JSON.stringify(faces));
-      loadStoredData(); // Refresh the display
+      try {
+        const response = await fetch(`${API_BASE_URL}/${studentId}`, {
+          method: "DELETE",
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          loadStoredData(); // Refresh the display
+        } else {
+          alert(`Failed to delete: ${data.message}`);
+        }
+      } catch (error) {
+        console.error("Error deleting student:", error);
+        alert("Failed to delete student");
+      }
     }
   };
 
-  /* ---------- Clear all data ---------- */
-  const handleClearAll = () => {
-    if (window.confirm("Are you sure you want to delete ALL registered faces? This cannot be undone.")) {
-      localStorage.removeItem("faces");
-      loadStoredData(); // Refresh the display
+  // Updated clear all function
+  const handleClearAll = async () => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete ALL registered faces? This cannot be undone."
+      )
+    ) {
+      try {
+        const response = await fetch(API_BASE_URL, {
+          method: "DELETE",
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          loadStoredData(); // Refresh the display
+        } else {
+          alert(`Failed to clear data: ${data.message}`);
+        }
+      } catch (error) {
+        console.error("Error clearing data:", error);
+        alert("Failed to clear data");
+      }
     }
   };
-
+  
   /* ---------- UI ---------- */
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -174,13 +235,13 @@ export default function RegisterStudent() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <input
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           placeholder="Enter student name"
           className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
         />
         <input
           value={regno}
-          onChange={e => setRegno(e.target.value)}
+          onChange={(e) => setRegno(e.target.value)}
           placeholder="Enter registration number"
           className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
         />
@@ -188,7 +249,11 @@ export default function RegisterStudent() {
           onClick={handleSave}
           disabled={!modelsLoaded}
           className={`flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-white
-            ${modelsLoaded ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"}`}
+            ${
+              modelsLoaded
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
         >
           <Camera className="h-5 w-5" />
           Save Face
@@ -196,13 +261,23 @@ export default function RegisterStudent() {
       </div>
 
       {/* Status Banner */}
-      <div className={`flex items-center gap-2 text-sm p-3 rounded-lg
-        ${status.startsWith("✅") ? "bg-green-50 text-green-700"
-        : status.startsWith("Error") || status.startsWith("❌") ? "bg-red-50 text-red-700"
-        : "bg-gray-50 text-gray-700"}`}>
-        {status.startsWith("✅") ? <Check className="h-4 w-4" />
-        : status.startsWith("Error") || status.startsWith("❌") ? <XCircle className="h-4 w-4" />
-        : <Loader2 className="h-4 w-4 animate-spin" />}
+      <div
+        className={`flex items-center gap-2 text-sm p-3 rounded-lg
+        ${
+          status.startsWith("✅")
+            ? "bg-green-50 text-green-700"
+            : status.startsWith("Error") || status.startsWith("❌")
+            ? "bg-red-50 text-red-700"
+            : "bg-gray-50 text-gray-700"
+        }`}
+      >
+        {status.startsWith("✅") ? (
+          <Check className="h-4 w-4" />
+        ) : status.startsWith("Error") || status.startsWith("❌") ? (
+          <XCircle className="h-4 w-4" />
+        ) : (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        )}
         <span className="font-medium">{status}</span>
       </div>
 
@@ -231,7 +306,11 @@ export default function RegisterStudent() {
               onClick={() => setShowData(!showData)}
               className="flex items-center gap-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
             >
-              {showData ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showData ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
               {showData ? "Hide" : "Show"} Data
             </button>
             {storedFaces.length > 0 && (
@@ -249,13 +328,20 @@ export default function RegisterStudent() {
         {showData && (
           <div className="space-y-3">
             {storedFaces.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No students registered yet.</p>
+              <p className="text-gray-500 text-center py-4">
+                No students registered yet.
+              </p>
             ) : (
               storedFaces.map((face, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">{face.name}</div>
-                    <div className="text-sm text-gray-600">Reg No: {face.regno}</div>
+                    <div className="text-sm text-gray-600">
+                      Reg No: {face.regno}
+                    </div>
                     <div className="text-xs text-gray-500">
                       Registered: {new Date(face.timestamp).toLocaleString()}
                     </div>
