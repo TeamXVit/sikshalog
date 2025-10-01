@@ -18,6 +18,7 @@ import {
   Calendar,
   Info
 } from 'lucide-react';
+import axios from "axios";
 
 export default function DetectStudent() {
   const videoRef = useRef(null);
@@ -40,12 +41,13 @@ export default function DetectStudent() {
   ];
 
   useEffect(() => {
+    // Initialization handler: loads models, fetches student faces, starts camera setup
     async function init() {
       try {
         setStatus("Loading AI models...");
         setDebugInfo("Starting model loading process...");
         
-        // Load models with error handling for each
+        // Load required face-api models concurrently with error handling for each
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri("/models").catch(e => {
             console.error("SsdMobilenetv1 model failed:", e);
@@ -62,20 +64,29 @@ export default function DetectStudent() {
         ]);
         
         setModelsLoaded(true);
-        setStatus("Models loaded, setting up face matcher...");
+        setStatus("Models loaded, fetching student faces...");
         setDebugInfo("Models loaded successfully");
 
-        // Load stored faces and create matcher
-        const stored = JSON.parse(localStorage.getItem("faces")) || [];
-        setDebugInfo(`Found ${stored.length} stored faces`);
-        
+        // Fetch registered student face descriptors from backend API endpoint
+        const response = await axios.get("http://localhost:5000/api/students/descriptors/all");
+        if (!response.data.success) {
+          // Handle backend failure gracefully
+          setStatus("⚠️ Failed to load registered students");
+          setDebugInfo("API returned unsuccessful response");
+          return;
+        }
+
+        const stored = response.data.data || [];
+        setDebugInfo(`Fetched ${stored.length} registered students from backend`);
+
         if (stored.length === 0) {
+          // Warn if no faces are enrolled yet
           setStatus("⚠️ No enrolled faces found. Please register students first.");
           setDebugInfo("No enrolled faces - please use Register Student first");
           return;
         }
 
-        // Create labeled descriptors with validation
+        // Process fetched face descriptors to create labeled descriptors for matcher
         const labeledDescriptors = stored.map((f, index) => {
           if (!f.descriptor || !Array.isArray(f.descriptor)) {
             console.error(`Invalid descriptor for face ${index}:`, f);
@@ -88,19 +99,22 @@ export default function DetectStudent() {
         }).filter(Boolean);
 
         if (labeledDescriptors.length === 0) {
+          // No valid descriptors found in fetched data
           setStatus("❌ No valid face descriptors found.");
-          setDebugInfo("All stored faces have invalid descriptors");
+          setDebugInfo("All fetched faces have invalid descriptors");
           return;
         }
         
+        // Create FaceMatcher instance with the labeled descriptors for recognition
         const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
         setMatcher(faceMatcher);
         setDebugInfo(`Face matcher created with ${labeledDescriptors.length} faces`);
 
+        // Ready to start camera stream
         setStatus("Face matcher ready, starting camera...");
 
-        // Start camera with detailed error handling
         try {
+          // Request access to user camera with ideal resolution and front camera preference
           const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
               width: { ideal: 640 },
@@ -109,16 +123,13 @@ export default function DetectStudent() {
             } 
           });
           
+          // Assign video stream to video element and setup metadata loaded and error handlers
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            
-            // Wait for video metadata to load
             videoRef.current.onloadedmetadata = () => {
               setStatus("✅ Camera ready - click Start Detection");
               setDebugInfo(`Video ready: ${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`);
             };
-
-            // Handle video loading errors
             videoRef.current.onerror = (e) => {
               console.error("Video error:", e);
               setStatus("❌ Video error occurred");
@@ -126,20 +137,24 @@ export default function DetectStudent() {
             };
           }
         } catch (cameraError) {
+          // Handle camera access errors (e.g., permissions denied)
           console.error("Camera error:", cameraError);
           setStatus(`❌ Camera error: ${cameraError.message}`);
           setDebugInfo(`Camera access failed: ${cameraError.name}`);
         }
         
       } catch (error) {
+        // General initialization error fallback
         console.error("Initialization error:", error);
         setStatus(`❌ Error: ${error.message}`);
         setDebugInfo(`Init failed: ${error.message}`);
       }
     }
 
+    // Call initialization on component mount
     init();
 
+    // Cleanup function: stop detection and camera stream on component unmount
     return () => {
       stopDetection();
       if (videoRef.current && videoRef.current.srcObject) {
@@ -149,6 +164,7 @@ export default function DetectStudent() {
     };
   }, []);
 
+  // Start detection handler: begins live face detection loop with real-time recognition
   const startDetection = async () => {
     if (!matcher || !videoRef.current || isDetecting || !modelsLoaded) {
       setDebugInfo("Cannot start: missing matcher, video, or models not loaded");
@@ -159,165 +175,151 @@ export default function DetectStudent() {
     setStatus("🔍 Live detection running...");
     let frameCount = 0;
 
+    // Core detection loop using requestAnimationFrame for smooth continuous detection
     const detectFaces = async () => {
-  try {
-    frameCount++;
-    
-    // Critical checks before detection
-    if (!videoRef.current || !canvasRef.current || !overlayCanvasRef.current) {
-      setDebugInfo("Missing video or canvas refs");
-      if (isDetecting) {
-        detectionRef.current = requestAnimationFrame(detectFaces);
-      }
-      return;
-    }
+      try {
+        frameCount++;
+        
+        // Verify necessary DOM refs for video and canvases exist
+        if (!videoRef.current || !canvasRef.current || !overlayCanvasRef.current) {
+          setDebugInfo("Missing video or canvas refs");
+          if (isDetecting) detectionRef.current = requestAnimationFrame(detectFaces);
+          return;
+        }
 
-    // Check video ready state - this is crucial!
-    if (videoRef.current.readyState < 2) {
-      setDebugInfo(`Video not ready, readyState: ${videoRef.current.readyState}`);
-      if (isDetecting) {
-        detectionRef.current = requestAnimationFrame(detectFaces);
-      }
-      return;
-    }
+        // Check if video is in a ready state to process frames
+        if (videoRef.current.readyState < 2) {
+          setDebugInfo(`Video not ready, readyState: ${videoRef.current.readyState}`);
+          if (isDetecting) detectionRef.current = requestAnimationFrame(detectFaces);
+          return;
+        }
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-    
-    // Get actual video dimensions
-    const videoWidth = video.videoWidth || video.offsetWidth;
-    const videoHeight = video.videoHeight || video.offsetHeight;
-    
-    if (videoWidth === 0 || videoHeight === 0) {
-      setDebugInfo("Video dimensions are 0");
-      if (isDetecting) {
-        detectionRef.current = requestAnimationFrame(detectFaces);
-      }
-      return;
-    }
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const overlayCanvas = overlayCanvasRef.current;
+        
+        // Get actual video dimensions (fallback to offset size)
+        const videoWidth = video.videoWidth || video.offsetWidth;
+        const videoHeight = video.videoHeight || video.offsetHeight;
+        
+        if (videoWidth === 0 || videoHeight === 0) {
+          setDebugInfo("Video dimensions are 0");
+          if (isDetecting) detectionRef.current = requestAnimationFrame(detectFaces);
+          return;
+        }
 
-    const displaySize = {
-      width: videoWidth,
-      height: videoHeight,
+        const displaySize = { width: videoWidth, height: videoHeight };
+
+        // Resize canvases to match video dimensions for accurate overlay drawing
+        faceapi.matchDimensions(canvas, displaySize);
+        faceapi.matchDimensions(overlayCanvas, displaySize);
+
+        // Perform face detection with SSD MobileNet model and get landmarks and descriptors
+        const detections = await faceapi
+          .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3, maxResults: 10 }))
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+
+        setDebugInfo(`Frame ${frameCount}: ${detections.length} faces detected`);
+
+        // Clear previous drawings from both canvases
+        const ctx = canvas.getContext("2d");
+        const overlayCtx = overlayCanvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+        setFaceCount(detections.length);
+
+        if (detections.length > 0 && matcher) {
+          // Resize detection results to match display size for overlay accuracy
+          const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+          // For each detected face, find best match from enrolled students
+          resizedDetections.forEach((detection) => {
+            const bestMatch = matcher.findBestMatch(detection.descriptor);
+            const box = detection.detection.box;
+            const label = bestMatch.distance < 0.6 ? bestMatch.label : "Unknown";
+            const confidence = Math.round((1 - bestMatch.distance) * 100);
+            const color = bestMatch.distance < 0.6 ? "#10B981" : "#EF4444";
+            
+            // Draw mirrored face bounding box for selfie camera view
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.translate(-canvas.width, 0);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+            ctx.restore();
+            
+            // Draw facial landmarks points for better visualization
+            const landmarks = detection.landmarks;
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.translate(-canvas.width, 0);
+            ctx.fillStyle = color;
+            landmarks.positions.forEach(point => {
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
+              ctx.fill();
+            });
+            ctx.restore();
+
+            // Draw text label on separate overlay canvas (not mirrored for readability)
+            const textX = displaySize.width - box.x - box.width;
+            const textY = box.y - 10;
+            overlayCtx.font = "bold 16px Arial";
+            overlayCtx.fillStyle = color;
+            overlayCtx.strokeStyle = "rgba(0,0,0,0.7)";
+            overlayCtx.lineWidth = 3;
+            const text = `${label} (${confidence}%)`;
+            overlayCtx.strokeText(text, textX, textY);
+            overlayCtx.fillText(text, textX, textY);
+          });
+        } else if (detections.length > 0 && !matcher) {
+          // If no matcher, just show detection boxes with gray color and generic label
+          const resizedDetections = faceapi.resizeResults(detections, displaySize);
+          
+          resizedDetections.forEach((detection) => {
+            const box = detection.detection.box;
+            const color = "#6B7280";
+            
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.translate(-canvas.width, 0);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+            ctx.restore();
+            
+            const textX = displaySize.width - box.x - box.width;
+            const textY = box.y - 10;
+            overlayCtx.font = "bold 16px Arial";
+            overlayCtx.fillStyle = color;
+            overlayCtx.strokeStyle = "rgba(0,0,0,0.7)";
+            overlayCtx.lineWidth = 3;
+            const text = "Face Detected";
+            overlayCtx.strokeText(text, textX, textY);
+            overlayCtx.fillText(text, textX, textY);
+          });
+        }
+
+        // Continue the detection loop if still active
+        if (isDetecting) detectionRef.current = requestAnimationFrame(detectFaces);
+
+      } catch (error) {
+        // Handle any errors during detection gracefully and retry
+        console.error("Detection error:", error);
+        setStatus("❌ Detection error");
+        setDebugInfo(`Detection error: ${error.message}`);
+        if (isDetecting) detectionRef.current = requestAnimationFrame(detectFaces);
+      }
     };
 
-    // Match canvas dimensions
-    faceapi.matchDimensions(canvas, displaySize);
-    faceapi.matchDimensions(overlayCanvas, displaySize);
-
-    // Perform detection with lower confidence for better results
-    const detections = await faceapi
-      .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ 
-        minConfidence: 0.3, // Lower threshold for better detection
-        maxResults: 10 
-      }))
-      .withFaceLandmarks()
-      .withFaceDescriptors();
-
-    // Update debug info
-    setDebugInfo(`Frame ${frameCount}: ${detections.length} faces detected`);
-
-    // Clear both canvases
-    const ctx = canvas.getContext("2d");
-    const overlayCtx = overlayCanvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-    setFaceCount(detections.length);
-
-    if (detections.length > 0 && matcher) {
-      const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-      resizedDetections.forEach((detection, index) => {
-        const bestMatch = matcher.findBestMatch(detection.descriptor);
-        const box = detection.detection.box;
-        const label = bestMatch.distance < 0.6 ? bestMatch.label : "Unknown";
-        const confidence = Math.round((1 - bestMatch.distance) * 100);
-        const color = bestMatch.distance < 0.6 ? "#10B981" : "#EF4444";
-        
-        // Draw face box mirrored for selfie view
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.translate(-canvas.width, 0);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(box.x, box.y, box.width, box.height);
-        ctx.restore();
-        
-        // Draw landmarks
-        const landmarks = detection.landmarks;
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.translate(-canvas.width, 0);
-        ctx.fillStyle = color;
-        landmarks.positions.forEach(point => {
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
-          ctx.fill();
-        });
-        ctx.restore();
-
-        // Draw text labels (not mirrored for readability)
-        const textX = displaySize.width - box.x - box.width;
-        const textY = box.y - 10;
-        overlayCtx.font = "bold 16px Arial";
-        overlayCtx.fillStyle = color;
-        overlayCtx.strokeStyle = "rgba(0,0,0,0.7)";
-        overlayCtx.lineWidth = 3;
-        const text = `${label} (${confidence}%)`;
-        overlayCtx.strokeText(text, textX, textY);
-        overlayCtx.fillText(text, textX, textY);
-      });
-    } else if (detections.length > 0 && !matcher) {
-      // If no matcher is loaded, just draw detection boxes without recognition
-      const resizedDetections = faceapi.resizeResults(detections, displaySize);
-      
-      resizedDetections.forEach((detection, index) => {
-        const box = detection.detection.box;
-        const color = "#6B7280"; // Gray color for unrecognized faces
-        
-        // Draw face box mirrored for selfie view
-        ctx.save();
-        ctx.scale(-1, 1);
-        ctx.translate(-canvas.width, 0);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(box.x, box.y, box.width, box.height);
-        ctx.restore();
-        
-        // Draw text labels (not mirrored for readability)
-        const textX = displaySize.width - box.x - box.width;
-        const textY = box.y - 10;
-        overlayCtx.font = "bold 16px Arial";
-        overlayCtx.fillStyle = color;
-        overlayCtx.strokeStyle = "rgba(0,0,0,0.7)";
-        overlayCtx.lineWidth = 3;
-        const text = "Face Detected";
-        overlayCtx.strokeText(text, textX, textY);
-        overlayCtx.fillText(text, textX, textY);
-      });
-    }
-
-    // Continue detection loop
-    if (isDetecting) {
-      detectionRef.current = requestAnimationFrame(detectFaces);
-    }
-
-  } catch (error) {
-    console.error("Detection error:", error);
-    setStatus("❌ Detection error");
-    setDebugInfo(`Detection error: ${error.message}`);
-    if (isDetecting) {
-      detectionRef.current = requestAnimationFrame(detectFaces);
-    }
-  }
-};
-
-
+    // Begin first detection frame request to start the loop
     detectionRef.current = requestAnimationFrame(detectFaces);
   };
 
+  // Stop detection handler: stops the detection loop and resets relevant state
   const stopDetection = () => {
     setIsDetecting(false);
     setStatus("⏹️ Detection stopped");
@@ -328,6 +330,7 @@ export default function DetectStudent() {
     }
   };
 
+  // Select appropriate CSS color class for the current status message
   const getStatusColor = () => {
     if (status.includes("❌")) return "text-red-600";
     if (status.includes("✅")) return "text-green-600";
@@ -336,6 +339,7 @@ export default function DetectStudent() {
     return "text-gray-700";
   };
 
+  // Select appropriate icon component for the current status message
   const getStatusIcon = () => {
     if (status.includes("❌")) return <XCircle className="h-5 w-5 text-red-500" />;
     if (status.includes("✅")) return <CheckCircle className="h-5 w-5 text-green-500" />;

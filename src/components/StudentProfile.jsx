@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Award, TrendingUp, Clock, AlertTriangle, CheckCircle, XCircle, Heart, Shield, Thermometer } from 'lucide-react';
-import StudentsData from './StudentsData';
+import {
+  ArrowLeft, Mail, Phone, MapPin, Award, TrendingUp, Clock,
+  AlertTriangle, CheckCircle, XCircle, Heart, Shield, Thermometer
+} from 'lucide-react';
+
+const API_BASE_URL = "http://localhost:5000/api/students";
 
 const StudentProfile = () => {
   const { id } = useParams();
+  const [student, setStudent] = useState(null);
 
-  // Mock student data
-  const student = StudentsData[id-1];
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setStudent(data.data);
+      });
+  }, [id]);
 
+  if (!student) return <div className="text-center py-12 text-gray-500">Loading…</div>;
+
+  // Grade color mapping
   const getGradeColor = (grade) => {
     switch (grade) {
       case 'A+': return 'text-green-700 bg-green-100';
@@ -18,7 +31,7 @@ const StudentProfile = () => {
       default: return 'text-gray-600 bg-gray-100';
     }
   };
-
+  // Remark style mapping
   const getRemarkStyle = (severity) => {
     switch (severity) {
       case 'high': return 'border-l-red-500 bg-red-50';
@@ -28,7 +41,7 @@ const StudentProfile = () => {
       default: return 'border-l-gray-500 bg-gray-50';
     }
   };
-
+  // Remark icon mapping
   const getRemarkIcon = (severity) => {
     switch (severity) {
       case 'high': return <XCircle className="h-4 w-4 text-red-500" />;
@@ -38,6 +51,35 @@ const StudentProfile = () => {
       default: return <AlertTriangle className="h-4 w-4 text-gray-500" />;
     }
   };
+
+  // Fallbacks for missing fields
+  const grades = student.grades || [
+    { subject: "Math", marks: 95, grade: "A+" },
+    { subject: "Science", marks: 92, grade: "A" },
+    { subject: "English", marks: 87, grade: "B+" },
+  ];
+  const remarks = student.remarks || [
+    { id: 1, title: "Excellent Participation", subject: "Science", description: "Participated in all lab activities.", addedBy: "Mr. Gupta", date: Date.now(), severity: "positive" }
+  ];
+  const medicalHistory = student.medicalHistory || {
+    bloodGroup: "O+",
+    height: "150cm",
+    weight: "45kg",
+    allergies: ["Peanuts", "Dust"],
+    chronicConditions: ["Asthma"],
+    emergencyContact: { name: "Father", phone: student.fatherMobile || "N/A", relation: "Father" },
+    vaccinations: [
+      { vaccine: "MMR", manufacturer: "Serum Institute", date: Date.now(), status: "Completed" }
+    ],
+    medicalReports: [
+      { type: "General Checkup", date: Date.now(), doctor: "Dr. Rao", findings: "Healthy", recommendations: "Continue routine" }
+    ],
+  };
+  const achievements = student.achievements || ["Quiz Winner", "Science Fair 2nd Position"];
+  const attendanceHistory = student.attendanceHistory || [
+    { date: Date.now(), status: "present" },
+    { date: Date.now() - 86400000, status: "absent" }
+  ];
 
   return (
     <div className="space-y-6">
@@ -58,25 +100,25 @@ const StudentProfile = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
           <img
-            src={student.photo}
+            src={student.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(student.name)}`}
             alt={student.name}
             className="h-24 w-24 rounded-full object-cover"
           />
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
             <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-gray-600">
-              <span>Roll No: {student.rollNo}</span>
-              <span>Class: {student.class}</span>
-              <span>Section: {student.section}</span>
+              <span>Reg No: {student.regno}</span>
+              <span>Class: {student.class || "N/A"}</span>
+              <span>Section: {student.section || "A"}</span>
             </div>
             <div className="flex items-center space-x-4 mt-3">
               <div className="flex items-center space-x-1">
                 <TrendingUp className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-green-600">{student.overallAttendance}% Overall</span>
+                <span className="text-sm font-medium text-green-600">{student.attendance || 85}% Overall</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Clock className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium text-blue-600">{student.currentMonthAttendance}% This Month</span>
+                <span className="text-sm font-medium text-blue-600">{student.monthAttendance || 80}% This Month</span>
               </div>
             </div>
           </div>
@@ -93,56 +135,55 @@ const StudentProfile = () => {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Date of Birth</label>
-                  <p className="text-gray-900">{new Date(student.dateOfBirth).toLocaleDateString('en-IN')}</p>
+                  <p className="text-gray-900">{student.dob ? new Date(student.dob).toLocaleDateString('en-IN') : "N/A"}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Father's Name</label>
-                  <p className="text-gray-900">{student.fatherName}</p>
+                  <p className="text-gray-900">{student.fatherName || "N/A"}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Mother's Name</label>
-                  <p className="text-gray-900">{student.motherName}</p>
+                  <p className="text-gray-900">{student.motherName || "N/A"}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Aadhar Number</label>
-                  <p className="text-gray-900">{student.aadharNumber}</p>
+                  <p className="text-gray-900">{student.aadhar || "N/A"}</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Admission Date</label>
-                  <p className="text-gray-900">{new Date(student.admissionDate).toLocaleDateString('en-IN')}</p>
+                  <p className="text-gray-900">{student.timestamp ? new Date(student.timestamp).toLocaleDateString('en-IN') : "N/A"}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Phone</label>
                   <div className="flex items-center space-x-2">
                     <Phone className="h-4 w-4 text-gray-400" />
-                    <p className="text-gray-900">{student.phone}</p>
+                    <p className="text-gray-900">{student.fatherMobile || student.phone || "N/A"}</p>
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Email</label>
                   <div className="flex items-center space-x-2">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    <p className="text-gray-900">{student.email}</p>
+                    <p className="text-gray-900">{student.parentemailid || student.email || "N/A"}</p>
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Address</label>
                   <div className="flex items-start space-x-2">
                     <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                    <p className="text-gray-900 text-sm">{student.address}</p>
+                    <p className="text-gray-900 text-sm">{student.address || "N/A"}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
           {/* Academic Performance */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Academic Performance</h3>
             <div className="space-y-3">
-              {student.grades.map((grade, index) => (
+              {grades.map((grade, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="font-medium text-gray-900">{grade.subject}</span>
                   <div className="flex items-center space-x-3">
@@ -155,12 +196,11 @@ const StudentProfile = () => {
               ))}
             </div>
           </div>
-
           {/* Remarks Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Teacher Remarks</h3>
             <div className="space-y-4">
-              {student.remarks.map((remark) => (
+              {remarks.map((remark) => (
                 <div key={remark.id} className={`border-l-4 p-4 rounded-lg ${getRemarkStyle(remark.severity)}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-2">
@@ -184,37 +224,32 @@ const StudentProfile = () => {
               ))}
             </div>
           </div>
-
           {/* Medical History */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
               <Heart className="h-5 w-5 text-red-500" />
               <span>Medical History</span>
             </h3>
-            
-            {/* Basic Medical Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
               <div>
                 <label className="text-sm font-medium text-gray-600">Blood Group</label>
-                <p className="text-gray-900 font-semibold">{student.medicalHistory.bloodGroup}</p>
+                <p className="text-gray-900 font-semibold">{medicalHistory.bloodGroup}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Height</label>
-                <p className="text-gray-900">{student.medicalHistory.height}</p>
+                <p className="text-gray-900">{medicalHistory.height}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-600">Weight</label>
-                <p className="text-gray-900">{student.medicalHistory.weight}</p>
+                <p className="text-gray-900">{medicalHistory.weight}</p>
               </div>
             </div>
-
-            {/* Allergies & Conditions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Allergies</h4>
                 <div className="space-y-1">
-                  {student.medicalHistory.allergies.map((allergy, index) => (
-                    <span key={index} className="inline-block bg-red-100 text-red-700 text-sm px-2 py-1 rounded-full mr-2">
+                  {medicalHistory.allergies.map((allergy, idx) => (
+                    <span key={idx} className="inline-block bg-red-100 text-red-700 text-sm px-2 py-1 rounded-full mr-2">
                       {allergy}
                     </span>
                   ))}
@@ -223,26 +258,24 @@ const StudentProfile = () => {
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Chronic Conditions</h4>
                 <div className="space-y-1">
-                  {student.medicalHistory.chronicConditions.map((condition, index) => (
-                    <span key={index} className="inline-block bg-yellow-100 text-yellow-700 text-sm px-2 py-1 rounded-full mr-2">
+                  {medicalHistory.chronicConditions.map((condition, idx) => (
+                    <span key={idx} className="inline-block bg-yellow-100 text-yellow-700 text-sm px-2 py-1 rounded-full mr-2">
                       {condition}
                     </span>
                   ))}
                 </div>
               </div>
             </div>
-
             {/* Emergency Contact */}
             <div className="mb-6 p-4 bg-blue-50 rounded-lg">
               <h4 className="font-medium text-gray-900 mb-2 flex items-center space-x-1">
                 <Phone className="h-4 w-4" />
                 <span>Emergency Medical Contact</span>
               </h4>
-              <p className="text-gray-700">{student.medicalHistory.emergencyContact.name}</p>
-              <p className="text-sm text-gray-600">{student.medicalHistory.emergencyContact.phone}</p>
-              <p className="text-sm text-gray-600">{student.medicalHistory.emergencyContact.relation}</p>
+              <p className="text-gray-700">{medicalHistory.emergencyContact.name}</p>
+              <p className="text-sm text-gray-600">{medicalHistory.emergencyContact.phone}</p>
+              <p className="text-sm text-gray-600">{medicalHistory.emergencyContact.relation}</p>
             </div>
-
             {/* Vaccinations */}
             <div className="mb-6">
               <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-1">
@@ -250,7 +283,7 @@ const StudentProfile = () => {
                 <span>Vaccination Records</span>
               </h4>
               <div className="space-y-2">
-                {student.medicalHistory.vaccinations.map((vaccination, index) => (
+                {medicalHistory.vaccinations.map((vaccination, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                     <div>
                       <span className="font-medium text-gray-900">{vaccination.vaccine}</span>
@@ -266,7 +299,6 @@ const StudentProfile = () => {
                 ))}
               </div>
             </div>
-
             {/* Medical Reports */}
             <div>
               <h4 className="font-medium text-gray-900 mb-3 flex items-center space-x-1">
@@ -274,7 +306,7 @@ const StudentProfile = () => {
                 <span>Recent Medical Reports</span>
               </h4>
               <div className="space-y-3">
-                {student.medicalHistory.medicalReports.map((report, index) => (
+                {medicalHistory.medicalReports.map((report, index) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h5 className="font-medium text-gray-900">{report.type}</h5>
@@ -293,14 +325,13 @@ const StudentProfile = () => {
             </div>
           </div>
         </div>
-
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Achievements */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Achievements</h3>
             <div className="space-y-3">
-              {student.achievements.map((achievement, index) => (
+              {achievements.map((achievement, index) => (
                 <div key={index} className="flex items-start space-x-2">
                   <Award className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                   <span className="text-sm text-gray-700">{achievement}</span>
@@ -308,12 +339,11 @@ const StudentProfile = () => {
               ))}
             </div>
           </div>
-
           {/* Recent Attendance */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Attendance</h3>
             <div className="space-y-3">
-              {student.attendanceHistory.map((record, index) => (
+              {attendanceHistory.map((record, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div className={`w-2 h-2 rounded-full ${

@@ -36,6 +36,62 @@ const studentSchema = new mongoose.Schema({
       message: 'Face descriptor must be a valid JSON string of 128 numbers'
     }
   },
+  parentemailid: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    match: [/.+@.+\..+/, 'Please enter a valid email address']
+  },
+  dob: {
+    type: Date,
+    required: false
+  },
+  fatherName: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Father\'s name must not exceed 100 characters']
+  },
+  motherName: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Mother\'s name must not exceed 100 characters']
+  },
+  aadhar: {
+    type: String,
+    trim: true,
+    unique: true,
+    validate: {
+      validator: function(v) {
+        return /^\d{12}$/.test(v);
+      },
+      message: 'Aadhar must be a 12 digit number'
+    }
+  },
+  address: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Address must not exceed 500 characters']
+  },
+  fatherMobile: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v) {
+        return /^\d{10}$/.test(v);
+      },
+      message: 'Father\'s mobile number must be a 10 digit number'
+    }
+  },
+  motherMobile: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v) {
+        return /^\d{10}$/.test(v);
+      },
+      message: 'Mother\'s mobile number must be a 10 digit number'
+    }
+  },
   timestamp: {
     type: Date,
     default: Date.now

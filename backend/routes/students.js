@@ -34,7 +34,7 @@ const validateStudentInput = (req, res, next) => {
 router.get('/', async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '', sortBy = 'timestamp', order = 'desc' } = req.query;
-    
+
     // Build search query
     const searchQuery = search ? {
       $or: [
@@ -43,20 +43,21 @@ router.get('/', async (req, res) => {
       ],
       isActive: true
     } : { isActive: true };
-    
+
     // Build sort object
     const sortOrder = order === 'asc' ? 1 : -1;
     const sortObject = { [sortBy]: sortOrder };
-    
+
+    // Select all fields except faceDescriptor
     const students = await Student.find(searchQuery)
-      .select('-faceDescriptor') // Exclude face descriptor for list view
+      .select('-faceDescriptor') // Exclude faceDescriptor; all other fields (parentemailid, dob, fatherName, etc) are included.
       .sort(sortObject)
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .lean();
-    
+
     const total = await Student.countDocuments(searchQuery);
-    
+
     res.json({
       success: true,
       data: {
@@ -83,43 +84,67 @@ router.get('/', async (req, res) => {
 // POST /api/students - Register new student
 router.post('/', validateStudentInput, async (req, res) => {
   try {
-    const { name, regno, descriptor } = req.body;
-    
-    // Check if registration number already exists
-    const existingStudent = await Student.findOne({ 
+    // Destructure required and optional fields from request body
+    const {
+      name,
+      regno,
+      descriptor,
+      parentemailid,
+      dob,
+      fatherName,
+      motherName,
+      aadhar,
+      address,
+      fatherMobile,
+      motherMobile
+    } = req.body;
+
+    // Check if registration number already exists for an active student
+    const existingStudent = await Student.findOne({
       regno: regno.toUpperCase(),
-      isActive: true 
+      isActive: true
     });
-    
+
     if (existingStudent) {
       return res.status(409).json({
         success: false,
         message: `Student with registration number ${regno.toUpperCase()} already exists`
       });
     }
-    
-    // Create new student with stringified descriptor
+
+    // Create the new student record, stringifying the face descriptor
     const newStudent = new Student({
       name: name.trim(),
       regno: regno.toUpperCase().trim(),
-      faceDescriptor: JSON.stringify(descriptor) // Stringify the descriptor array
+      faceDescriptor: JSON.stringify(descriptor),
+      parentemailid: parentemailid ? parentemailid.trim().toLowerCase() : undefined,
+      dob: dob ? new Date(dob) : undefined,
+      fatherName: fatherName ? fatherName.trim() : undefined,
+      motherName: motherName ? motherName.trim() : undefined,
+      aadhar: aadhar ? aadhar.trim() : undefined,
+      address: address ? address.trim() : undefined,
+      fatherMobile: fatherMobile ? fatherMobile.trim() : undefined,
+      motherMobile: motherMobile ? motherMobile.trim() : undefined,
     });
-    
+
+    // Save student to database
     await newStudent.save();
-    
-    // Return student data without face descriptor
+
+    // Prepare response data, exclude faceDescriptor for security/privacy
     const studentData = newStudent.toObject();
     delete studentData.faceDescriptor;
-    
+
+    // Respond with success and saved student data
     res.status(201).json({
       success: true,
       message: 'Student registered successfully',
       data: studentData
     });
-    
+
   } catch (error) {
     console.error('Error registering student:', error);
-    
+
+    // Respond validation errors clearly
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -128,14 +153,16 @@ router.post('/', validateStudentInput, async (req, res) => {
         errors: validationErrors
       });
     }
-    
+
+    // Handle duplicate key errors (mostly registration number or aadhar duplicates)
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: 'Registration number already exists'
+        message: 'Registration number or Aadhar already exists'
       });
     }
-    
+
+    // Generic server error fallback with conditional detail in dev
     res.status(500).json({
       success: false,
       message: 'Failed to register student',

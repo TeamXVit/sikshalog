@@ -19,27 +19,33 @@ export default function RegisterStudent() {
   const [status, setStatus] = useState("Initializing…");
   const [name, setName] = useState("");
   const [regno, setRegno] = useState("");
+  const [parentEmailId, setParentEmailId] = useState("");
+  const [dob, setDob] = useState("");
+  const [fatherName, setFatherName] = useState("");
+  const [motherName, setMotherName] = useState("");
+  const [aadhar, setAadhar] = useState("");
+  const [address, setAddress] = useState("");
+  const [fatherMobile, setFatherMobile] = useState("");
+  const [motherMobile, setMotherMobile] = useState("");
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [faceReady, setFaceReady] = useState(false);
   const [storedFaces, setStoredFaces] = useState([]);
   const [showData, setShowData] = useState(false);
 
- const API_BASE_URL = 'http://localhost:5000/api/students';
+  const API_BASE_URL = "http://localhost:5000/api/students";
 
-// Load stored data from backend
-const loadStoredData = async () => {
-  try {
-    const response = await fetch(API_BASE_URL);
-    const data = await response.json();
-    if (data.success) {
-      // Data is already parsed and ready to use - no need to parse face descriptors here
-      // since we're not using them in the UI list
-      setStoredFaces(data.data.students);
+  // Load stored data from backend
+  const loadStoredData = async () => {
+    try {
+      const response = await fetch(API_BASE_URL);
+      const data = await response.json();
+      if (data.success) {
+        setStoredFaces(data.data.students);
+      }
+    } catch (error) {
+      console.error("Error loading stored data:", error);
     }
-  } catch (error) {
-    console.error('Error loading stored data:', error);
-  }
-};
+  };
 
   /* ---------- Load models & start camera ---------- */
   useEffect(() => {
@@ -71,7 +77,7 @@ const loadStoredData = async () => {
     };
 
     init();
-    loadStoredData(); // Load stored data on component mount
+    loadStoredData();
 
     /* Cleanup camera on unmount */
     return () => {
@@ -104,60 +110,79 @@ const loadStoredData = async () => {
     requestAnimationFrame(detectLoop);
   };
 
- // Updated save function (no changes needed as we already send array)
-const handleSave = async () => {
-  if (!modelsLoaded) return;
-  if (!name.trim()) {
-    alert("Enter a name first!"); return;
-  }
-  if (!regno.trim()) {
-    alert("Enter registration number first!"); return;
-  }
-  if (!faceReady) {
-    alert("No face detected!"); return;
-  }
-
-  setStatus("Capturing…");
-  const detection = await faceapi
-    .detectSingleFace(videoRef.current)
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (!detection) {
-    setStatus("Ready • Face lost, try again");
-    return;
-  }
-
-  try {
-    const response = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: name.trim(),
-        regno: regno.trim(),
-        descriptor: Array.from(detection.descriptor) // Send as array - will be stringified in backend
-      }),
-    });
-
-    const data = await response.json();
-    
-    if (data.success) {
-      setName("");
-      setRegno("");
-      setStatus("✅ Saved! Register another student");
-      loadStoredData(); // Refresh the stored data display
-    } else {
-      setStatus(`❌ Error: ${data.message}`);
+  // Save function with added fields
+  const handleSave = async () => {
+    if (!modelsLoaded) return;
+    if (!name.trim()) {
+      alert("Enter a name first!");
+      return;
     }
-  } catch (error) {
-    console.error('Error saving student:', error);
-    setStatus("❌ Failed to save student");
-  }
-};
+    if (!regno.trim()) {
+      alert("Enter registration number first!");
+      return;
+    }
+    if (!faceReady) {
+      alert("No face detected!");
+      return;
+    }
 
-  // Updated delete function
+    setStatus("Capturing…");
+    const detection = await faceapi
+      .detectSingleFace(videoRef.current)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!detection) {
+      setStatus("Ready • Face lost, try again");
+      return;
+    }
+
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          regno: regno.trim(),
+          descriptor: Array.from(detection.descriptor),
+          parentemailid: parentEmailId.trim() || undefined,
+          dob: dob || undefined,
+          fatherName: fatherName.trim() || undefined,
+          motherName: motherName.trim() || undefined,
+          aadhar: aadhar.trim() || undefined,
+          address: address.trim() || undefined,
+          fatherMobile: fatherMobile.trim() || undefined,
+          motherMobile: motherMobile.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setName("");
+        setRegno("");
+        setParentEmailId("");
+        setDob("");
+        setFatherName("");
+        setMotherName("");
+        setAadhar("");
+        setAddress("");
+        setFatherMobile("");
+        setMotherMobile("");
+        setStatus("✅ Saved! Register another student");
+        loadStoredData();
+      } else {
+        setStatus(`❌ Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error("Error saving student:", error);
+      setStatus("❌ Failed to save student");
+    }
+  };
+
+  // Delete function from original code
   const handleDelete = async (studentId) => {
     if (window.confirm("Are you sure you want to delete this record?")) {
       try {
@@ -178,7 +203,7 @@ const handleSave = async () => {
     }
   };
 
-  // Updated clear all function
+  // Clear all function from original code
   const handleClearAll = async () => {
     if (
       window.confirm(
@@ -202,7 +227,7 @@ const handleSave = async () => {
       }
     }
   };
-  
+
   /* ---------- UI ---------- */
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -232,38 +257,101 @@ const handleSave = async () => {
       </div>
 
       {/* Input & Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter student name"
-          className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
         />
         <input
           value={regno}
           onChange={(e) => setRegno(e.target.value)}
           placeholder="Enter registration number"
-          className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
         />
-        <button
-          onClick={handleSave}
-          disabled={!modelsLoaded}
-          className={`flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-white
-            ${
+        <input
+          type="email"
+          value={parentEmailId}
+          onChange={(e) => setParentEmailId(e.target.value)}
+          placeholder="Parent's email ID"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+        />
+        <input
+          type="date"
+          value={dob}
+          onChange={(e) => setDob(e.target.value)}
+          placeholder="Date of Birth"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          value={fatherName}
+          onChange={(e) => setFatherName(e.target.value)}
+          placeholder="Father's name"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+        />
+        <input
+          value={motherName}
+          onChange={(e) => setMotherName(e.target.value)}
+          placeholder="Mother's name"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+        />
+        <input
+          value={aadhar}
+          onChange={(e) => setAadhar(e.target.value)}
+          placeholder="Aadhar number"
+          maxLength={12}
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+        />
+        <input
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Address"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+        />
+        <input
+          value={fatherMobile}
+          onChange={(e) => setFatherMobile(e.target.value)}
+          placeholder="Father's mobile no"
+          maxLength={10}
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+        />
+        <input
+          value={motherMobile}
+          onChange={(e) => setMotherMobile(e.target.value)}
+          placeholder="Mother's mobile no"
+          maxLength={10}
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          spellCheck={false}
+        />
+        <div className="flex items-center justify-center sm:col-span-2 lg:col-span-1">
+          <button
+            onClick={handleSave}
+            disabled={!modelsLoaded}
+            className={`flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-white ${
               modelsLoaded
                 ? "bg-blue-600 hover:bg-blue-700"
                 : "bg-gray-400 cursor-not-allowed"
             }`}
-        >
-          <Camera className="h-5 w-5" />
-          Save Face
-        </button>
+            style={{ minWidth: "150px" }}
+          >
+            <Camera className="h-5 w-5" />
+            Save Face
+          </button>
+        </div>
       </div>
 
       {/* Status Banner */}
       <div
-        className={`flex items-center gap-2 text-sm p-3 rounded-lg
-        ${
+        className={`flex items-center gap-2 text-sm p-3 rounded-lg ${
           status.startsWith("✅")
             ? "bg-green-50 text-green-700"
             : status.startsWith("Error") || status.startsWith("❌")
@@ -332,23 +420,41 @@ const handleSave = async () => {
                 No students registered yet.
               </p>
             ) : (
-              storedFaces.map((face, index) => (
+              storedFaces.map((face) => (
                 <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  key={face._id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-lg gap-2 sm:gap-4"
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-0.5">
                     <div className="font-medium text-gray-900">{face.name}</div>
                     <div className="text-sm text-gray-600">
                       Reg No: {face.regno}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Parent Email: {face.parentemailid || "N/A"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      DOB: {face.dob ? new Date(face.dob).toLocaleDateString() : "N/A"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Father: {face.fatherName || "N/A"} - Mobile: {face.fatherMobile || "N/A"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Mother: {face.motherName || "N/A"} - Mobile: {face.motherMobile || "N/A"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Aadhar: {face.aadhar || "N/A"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Address: {face.address || "N/A"}
                     </div>
                     <div className="text-xs text-gray-500">
                       Registered: {new Date(face.timestamp).toLocaleString()}
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDelete(index)}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg"
+                    onClick={() => handleDelete(face._id)}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg whitespace-nowrap"
                   >
                     <Trash2 className="h-4 w-4" />
                     Delete
