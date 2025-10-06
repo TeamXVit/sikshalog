@@ -68,7 +68,7 @@ export default function DetectStudent() {
         setDebugInfo("Models loaded successfully");
 
         // Fetch registered student face descriptors from backend API endpoint
-        const response = await axios.get("http://localhost:5000/api/students/descriptors/all");
+        const response = await axios.get("https://sikshalog.vercel.app/api/students/descriptors/all");
         if (!response.data.success) {
           // Handle backend failure gracefully
           setStatus("⚠️ Failed to load registered students");

@@ -5,7 +5,7 @@ import {
   AlertTriangle, CheckCircle, XCircle, Heart, Shield, Thermometer
 } from 'lucide-react';
 
-const API_BASE_URL = "http://localhost:5000/api/students";
+const API_BASE_URL = "https://sikshalog.vercel.app/api/students";
 
 const StudentProfile = () => {
   const { id } = useParams();

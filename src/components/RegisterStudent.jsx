@@ -32,7 +32,7 @@ export default function RegisterStudent() {
   const [storedFaces, setStoredFaces] = useState([]);
   const [showData, setShowData] = useState(false);
 
-  const API_BASE_URL = "http://localhost:5000/api/students";
+  const API_BASE_URL = "https://sikshalog.vercel.app/api/students";
 
   // Load stored data from backend
   const loadStoredData = async () => {
